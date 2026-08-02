@@ -1,59 +1,6 @@
-# Hermes — Docker Compose Cheat Sheet
-
-Run all commands from the directory containing your `docker-compose.yml`.
-The service is named `hermes`.
-
-## Starting & stopping
-
-```bash
-docker compose pull           # Updating: fetch the latest image
-docker compose up -d          # start in the background (detached)
-docker compose up -d --pull always # updating and starting in a single step
-docker compose down           # stop and remove the container
-docker compose stop           # stop without removing
-docker compose start          # start an existing stopped container
-docker compose restart        # restart (e.g. after editing .env)
-```
-
-## Debugging
-
-```bash
-docker compose exec hermes sh     # shell in (try bash if sh isn't present)
-```
-
-## Watching it
-
-```bash
-docker compose logs -f                # follow live logs
-docker compose logs -f --tail 100     # last 100 lines, then follow
-docker compose ps                     # running? which ports?
-docker stats hermes                    # live CPU / memory / network usage
-```
-
-## Get a shell inside
-
-```bash
-docker compose exec hermes sh          # interactive shell (try bash if sh fails)
-docker compose exec hermes ls /opt/data    # peek at the mounted data dir
-docker compose exec hermes env             # inspect the env it's actually running with
-```
-
-## Notes for this setup
-
-- **`restart: unless-stopped`** — the container comes back automatically after a reboot or crash, *unless* you explicitly ran `stop` or `down`. After `down`, you must `up -d` again.
-- **Config** lives at `~/.hermes/.env`. Editing it requires `restart` (or `up -d`) to take effect — changes aren't picked up live.
-- **Data** lives at `~/.hermes`. It persists outside the container, so `down` won't wipe it; it survives recreation.
-
 # Hermes — Most Important CLI Commands
 
-The in-image binary is `hermes`. Since your container runs `gateway run`, invoke any of
-these from the host as:
-
-```bash
-docker compose exec hermes hermes <command>
-```
-
-(Or drop into a shell first with `docker compose exec hermes sh` and run `hermes …` directly.)
+The binary is `hermes`.
 
 > The authoritative list is always `hermes --help` and `hermes <command> --help`.
 > Plugin- and provider-supplied subcommands only appear once that plugin/provider is active.

@@ -34,6 +34,10 @@ docker compose up
 - Explicit `:80`/`:443` in the Caddyfile site addresses are documentation
   only — Caddy already infers them from the `http://` scheme and from
   automatic HTTPS.
+- **`encode @not_sse`** (Caddyfile): compression is skipped on the SSE
+  endpoints. Compression buffers bytes to build blocks, which delays the small,
+  frequent event and keepalive frames those streams depend on — it shows up as
+  stalled or dropped connections. Remove or adapt for your setup.
 
 ## Gotcha
 

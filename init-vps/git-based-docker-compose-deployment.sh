@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# Mininmal git-based docker compose deployments.
+# Mininmal git-based docker compose deployments. NOT TESTED!!!!!
+#
 # General idea, when you push to a bare repo on the server, a post-receive hook fast-forwards a working clone and runs a deploy command (e.g. docker compose up -d).
 # see, eg. https://symbioquine.net/2021-11-30-minimal-git-based-docker-compose-deployments/
 

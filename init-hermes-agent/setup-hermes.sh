@@ -1,5 +1,6 @@
 ############################
 # install dependencies (though the hermes script will do this itself)
+# Read and adapt; do not pipe to bash.
 ############################
 
 # run as username - no sudo needed
