@@ -125,9 +125,10 @@ curl -sS -m 5 "http://127.0.0.1:8787/health"
 
 # change in webui-env file:
 # HERMES_WEBUI_DEFAULT_WORKSPACE=/workspace
+# HERMES_WEBUI_SSE_CHUNKED=1
 # and/or change it via the webui
 
-# also put mise.toml in workspace
+# also put mise.toml in /workspace
 # run `uv venv`
 
 ##########################

@@ -1,0 +1,16 @@
+name: caddy-reverseproxy-server
+
+services:
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /home/aiagent/.caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data        # persists TLS state — keep this volume!
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

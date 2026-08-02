@@ -1,0 +1,44 @@
+
+# NetBird tunnel already encrypts this, so plain HTTP is fine.
+http://<private-vpn-hostname>:80 {
+    bind <private-vpn-ip>  # default: 0.0.0.0 -> meaning that everyone could reach it
+
+    # basic_auth is possible with caddy, but it may collide with an apps own "Authorization: Bearer" header.
+    # Since we only allow traffic from inside the VPN, no authorization is needed.
+    # basic_auth {
+    #   check documentation
+    # }
+
+    # SSE endpoints skip encode: compression buffers bytes to build blocks,
+    # which delays delivery of the small/frequent event and keepalive frames
+    # these streams depend on and shows up as stalled/dropped connections.
+    @not_sse {
+        not path /api/sessions/gateway/stream /api/session/stream /api/sessions/events /api/chat/stream /api/approval/stream /api/clarify/stream
+    }
+    encode @not_sse zstd gzip
+
+    # This could also point to a container name.
+    reverse_proxy 127.0.0.1:8787
+}
+
+# Just for fun: HTTPS encryption and custom domain names routed over VPN. Not necessary for security
+<your-domain.example>:443 {
+    bind <private-vpn-ip> # default: 0.0.0.0 -> meaning that everyone could reach it
+
+    # Enable connections via HTTPS: If <your-domain.example> would point to a public domain, one could also use Let's Encrypt and not Caddy own local CA here.
+    # Every client will need to/should install this local root certificate if no public and trusted CA is used.
+    tls internal
+
+    # basic_auth {
+    #   check documentation
+    # }
+
+    # SSE endpoints skip encode: compression buffers bytes to build blocks,
+    # which delays delivery of the small/frequent event and keepalive frames
+    # these streams depend on and shows up as stalled/dropped connections.
+    @not_sse {
+        not path /api/sessions/gateway/stream /api/session/stream /api/sessions/events /api/chat/stream /api/approval/stream /api/clarify/stream
+    }
+    encode @not_sse zstd gzip
+    reverse_proxy 127.0.0.1:8787
+}
