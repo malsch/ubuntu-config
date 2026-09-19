@@ -497,6 +497,11 @@ Next steps:
          ssh ${USERNAME}@<server-ip>
          bash ~/setup-agent.sh
 
+  6. Install quarto? And then R, python, tex, ...:
+        wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.18/quarto-1.10.18-linux-amd64.deb (https://quarto.org/docs/get-started/)
+        sudo apt install ./quarto-1.10.18-linux-amd64.deb
+        quarto check
+
 Worth knowing:
   * If you ever lock yourself out of SSH, the Hetzner Cloud Console (VNC) is
     your only way back — and it needs a password. Set ADMIN_PASSWORD in this
