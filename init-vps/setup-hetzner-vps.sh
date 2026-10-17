@@ -513,4 +513,9 @@ Worth knowing:
   * mise is activated per user in ~/.bashrc, which only applies to interactive
     shells.
 
+Further thoughts (should be added to the dotfiles):
+  mise use -g sops
+  # add to .bashrc: export SOPS_EDITOR=nano
+  git config diff.sops.textconv "sops -d"
+
 EOF
