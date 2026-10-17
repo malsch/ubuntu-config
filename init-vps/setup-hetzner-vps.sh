@@ -277,7 +277,7 @@ apt_get upgrade
 # ufw (1), fail2ban (3), git (5), unattended-upgrades (8), mise (10), docker (12).
 apt_get install \
   ca-certificates curl gnupg lsb-release \
-  htop rsync syncthing
+  htop rsync syncthing jq
 
 # may also be meaningful to install with sudo apt to run commands like npx playwright install-deps --dry-run chromium later
 # alternative: only available via mise
@@ -496,6 +496,11 @@ Next steps:
          scp setup-agent.sh ${USERNAME}@<server-ip>:~/
          ssh ${USERNAME}@<server-ip>
          bash ~/setup-agent.sh
+
+  6. Install quarto? And then R, python, tex, ...:
+        wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.18/quarto-1.10.18-linux-amd64.deb (https://quarto.org/docs/get-started/)
+        sudo apt install ./quarto-1.10.18-linux-amd64.deb
+        quarto check
 
 Worth knowing:
   * If you ever lock yourself out of SSH, the Hetzner Cloud Console (VNC) is
