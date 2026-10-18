@@ -1,0 +1,4 @@
+---
+# Size of /swapfile, created once on the first run (resizing an existing one
+# is not handled). "" = no swap file. Override with -e linux_swap_size=8G.
+linux_swap_size: "4G"

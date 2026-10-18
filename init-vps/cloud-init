@@ -4,9 +4,9 @@ timezone: Europe/Berlin
 
 system_info:
   default_user:
-    name: malte
+    name: <user_account_name>
     lock_passwd: True
-    gecos: malte
+    gecos: <user_account_name>
     groups: [adm, cdrom, dip, lxd, sudo]
     sudo: ["ALL=(ALL) NOPASSWD:ALL"]
     shell: /bin/bash

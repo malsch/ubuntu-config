@@ -1,0 +1,8 @@
+---
+user_account_name: ""
+user_account_sudo: none            # none | password (sudo asks for the user's password) | nopassword
+user_account_sudo_timeout_hours: 24   # sudo=password: hours before sudo asks again (per login session)
+user_account_password: ""          # su / sudo / console; never SSH. Required, unless the user already has one
+user_account_ssh_keys_from: ""     # a user whose authorized_keys to copy, a pasted public key, or "" / none
+user_account_groups: []            # extra groups, e.g. [docker, adm]
+user_account_linger: true          # systemd user services run without a login and start at boot

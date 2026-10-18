@@ -1,0 +1,30 @@
+---
+# Oracle Cloud's Ubuntu images ship iptables rules in /etc/iptables/rules.v4
+# (loaded at boot by netfilter-persistent) that reject all inbound traffic
+# except SSH. Oracle advises against UFW there, so instead of the firewall_ufw role this
+# opens the same ports inside Oracle's rules, ahead of its catch-all REJECT.
+# Open them in the Security List / Network Security Group (Oracle Cloud
+# Console) too, like the Hetzner Cloud Firewall.
+#
+# https://docs.oracle.com/en-us/iaas/Content/Compute/known-issues.htm#ufw
+#
+# Saved in rules.v4 for the next boot. validate stops a broken file from being
+# written (e.g. if Oracle's REJECT line is missing and the rule would land
+# after COMMIT).
+- name: Add rules to rules.v4
+  ansible.builtin.lineinfile:
+    path: /etc/iptables/rules.v4
+    line: "-A {{ item.chain }} {{ item.rule }}"
+    insertbefore: '^-A {{ item.chain }} -j REJECT'
+    validate: /usr/sbin/iptables-restore --test %s
+  loop: "{{ firewall_oracle_iptables_rules }}"
+
+# Applied live one by one, NOT by reloading rules.v4: iptables-restore would
+# flush the rules Docker adds at runtime.
+- name: Apply rules now
+  ansible.builtin.shell: |
+    iptables -C {{ item.chain }} {{ item.rule }} 2>/dev/null && echo present \
+      || { iptables -I {{ item.chain }} {{ item.rule }} && echo added; }
+  register: firewall_oracle_iptables_result
+  changed_when: "'added' in firewall_oracle_iptables_result.stdout"
+  loop: "{{ firewall_oracle_iptables_rules }}"

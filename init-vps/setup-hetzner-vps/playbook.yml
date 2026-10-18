@@ -1,0 +1,125 @@
+# Server setup for a fresh Ubuntu server (Hetzner or Oracle Cloud, x86 or ARM).
+# Run on the server itself via ./run.sh. See README.md.
+- name: Basic server setup
+  hosts: localhost        # the server itself: no inventory, no SSH
+  connection: local
+  become: true
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3   # system python has python3-apt
+
+    # Oracle Cloud's Ubuntu images ship their own iptables rules and Oracle
+    # advises against UFW there. Detected by that rules file; force with
+    # -e oracle_cloud=true or false.
+    # https://docs.oracle.com/en-us/iaas/Content/Compute/known-issues.htm#ufw
+    oracle_cloud: "{{ oracle_rules_file.stat.exists }}"
+    # Oracle blocks root SSH login (its root keys only print "login as ubuntu"),
+    # so the admin gets the ubuntu user's keys there instead.
+    admin_ssh_keys_from: "{{ 'ubuntu' if oracle_cloud | bool else 'root' }}"
+
+  # Asked on every run, never stored. Skip a question with -e name=value,
+  # e.g. -e timezone=Europe/Berlin, for unattended runs.
+  vars_prompt:
+    - name: admin_username
+      prompt: "Admin username (you; sudo rights)"
+      default: "{{ lookup('env', 'SUDO_USER') }}"
+      private: false
+
+    # Needed for sudo, su, and the console (Hetzner VNC / Oracle serial), your
+    # only way back if SSH breaks. Required; empty only keeps an existing one.
+    - name: admin_password
+      prompt: "Admin password for su, sudo and the console; never SSH (required; empty only keeps an existing one)"
+      default: ""
+      private: true
+      confirm: true
+
+    - name: admin_sudo_timeout_hours
+      prompt: "sudo asks for the admin password, then not again for how many hours (per login session)?"
+      default: "24"
+      private: false
+
+    - name: admin_passwordless_sudo
+      prompt: "Turn off the sudo password completely? Then your SSH key alone = root. (yes/no)"
+      default: "no"
+      private: false
+
+    - name: timezone
+      prompt: "Timezone? (e.g. Europe/Berlin, UTC, America/New_York)"
+      default: "Europe/Berlin"
+      private: false
+
+    # https://docs.netbird.io/manage/peers/register-machines-using-setup-keys
+    - name: netbird_setup_key
+      prompt: "NetBird setup key (empty = already connected, keep as is)"
+      default: ""
+      private: true
+
+  pre_tasks:
+    - name: Check required settings
+      ansible.builtin.assert:
+        that:
+          - admin_username | length > 0
+        fail_msg: "Enter an admin username"
+      tags: always
+
+    # Without a key, NetBird must already be connected.
+    # Checked up front, so a missing key stops the run before anything changes.
+    - name: Check NetBird connection (no setup key given)
+      ansible.builtin.command: netbird status --json
+      register: netbird_connection
+      changed_when: false
+      failed_when: false     # not installed / not running = not connected
+      check_mode: false
+      when: netbird_setup_key | length == 0
+      tags: always
+
+    - name: Require a NetBird setup key when not connected
+      ansible.builtin.assert:
+        that: (netbird_status_json | from_json).management.connected | default(false)
+        fail_msg: "NetBird is not connected yet: run again and enter a NetBird setup key."
+      vars:
+        # Not JSON when NetBird is missing or not set up; treat as not connected.
+        netbird_status_json: "{{ netbird_connection.stdout if netbird_connection.stdout | default('') is match('\\s*\\{') else '{}' }}"
+      when: netbird_setup_key | length == 0
+      tags: always
+
+    - name: Detect Oracle Cloud firewall rules
+      ansible.builtin.stat:
+        path: /etc/iptables/rules.v4
+      register: oracle_rules_file
+      tags: always
+
+  roles:
+    - { role: linux_time_configuration, tags: ['time'] }
+    - { role: netbird, tags: ['netbird'] }   # before the firewall roles: they use its port/interface
+    - { role: firewall_ufw, tags: ['security', 'firewall', 'ufw'], when: not oracle_cloud | bool }
+    - { role: firewall_oracle_iptables, tags: ['security', 'firewall', 'oracle'], when: oracle_cloud | bool }
+    - { role: linux_fail2ban, tags: ['security', 'fail2ban'] }
+    - { role: install_essential_packages, tags: ['packages', 'updates', 'system'] }
+    - { role: install_unattended-upgrades, tags: ['updates', 'automatic'] }
+    - { role: linux_swap, tags: ['system', 'swap'] }
+    - { role: mise, tags: ['packages', 'mise'] }
+    # The admin account: you. Other users: create-user.yml.
+    - role: user_account
+      tags: ['users']
+      vars:
+        user_account_name: "{{ admin_username }}"
+        user_account_sudo: "{{ 'nopassword' if admin_passwordless_sudo | bool else 'password' }}"
+        user_account_sudo_timeout_hours: "{{ admin_sudo_timeout_hours }}"
+        user_account_password: "{{ admin_password }}"
+        user_account_ssh_keys_from: "{{ admin_ssh_keys_from }}"
+        user_account_groups: [adm]   # docker is added by the docker role
+        user_account_linger: false
+    - { role: install_chromium_dependencies, tags: ['packages', 'chromium'] }
+    - { role: docker, tags: ['docker'] }
+    - { role: linux_logging_setup, tags: ['logging'] }
+
+  post_tasks:
+    - name: Next step - SSH hardening
+      ansible.builtin.debug:
+        msg:
+          - "Root SSH login is still allowed. Next, in a NEW terminal:"
+          - "  ssh {{ admin_username }}@<server-ip>"
+          - "Once that works, from that session:"
+          - "  cd {{ playbook_dir }} && sudo ansible-playbook ssh-setup.yml"
+          - "It disables root and password logins."

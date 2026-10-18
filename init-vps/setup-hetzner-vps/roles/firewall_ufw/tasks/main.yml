@@ -1,0 +1,67 @@
+---
+# UFW host firewall, IN ADDITION to the Hetzner Cloud Firewall: inbound
+# traffic is filtered twice, so open ports in the Cloud Console too.
+#
+# Remember: Ports published by Docker with '-p' bypass UFW entirely. Bind
+# them to 127.0.0.1 in compose if they should not be public.
+- name: Install ufw
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Deny incoming by default
+  community.general.ufw:
+    direction: incoming
+    default: deny
+
+- name: Allow outgoing by default
+  community.general.ufw:
+    direction: outgoing
+    default: allow
+
+- name: Allow inbound ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    comment: "{{ item.comment }}"
+  loop:
+    - { port: "22", proto: tcp, comment: SSH }
+    # NetBird's UDP port is for DIRECT connections from peers instead of slower relays.
+    - { port: "{{ netbird_port }}", proto: udp, comment: NetBird WireGuard }
+    # Caddy.
+    - { port: "80", proto: tcp, comment: HTTP }
+    - { port: "443", proto: tcp, comment: HTTPS }
+
+  # Trust anything arriving through the tunnel. Without this, services stay
+  # unreachable over NetBird even when the tunnel itself is up — UFW filters
+  # tunnel traffic exactly like public traffic.
+- name: Trust traffic arriving through the NetBird tunnel
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: "{{ netbird_iface }}"
+    comment: NetBird tunnel
+
+- name: Allow forwarding from the tunnel to Docker networks (80/443)
+  community.general.ufw:
+    rule: allow
+    route: true
+    interface_in: "{{ netbird_iface }}"
+    to_ip: "{{ item.0 }}"
+    to_port: "{{ item.1 }}"
+    proto: tcp
+  loop: "{{ docker_pools | product(['80', '443']) | list }}"
+  vars:
+    # Docker's documented default-address-pools (172.x only)
+    docker_pools:
+      - 172.17.0.0/16
+      - 172.18.0.0/16
+      - 172.19.0.0/16
+      - 172.20.0.0/14
+      - 172.24.0.0/14
+      - 172.28.0.0/14
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled

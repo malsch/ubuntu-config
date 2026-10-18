@@ -1,0 +1,13 @@
+# [DEFAULT] applies to every jail; a jail's own block (e.g. [sshd]) overrides it.
+
+[DEFAULT]
+bantime  = 10m
+findtime = 10m
+maxretry = 5
+
+# sshd: the SSH server. This jail watches its failed logins.
+[sshd]
+enabled = true
+port    = 22
+maxretry = 3
+bantime = 12h

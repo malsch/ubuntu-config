@@ -1,0 +1,138 @@
+---
+# Does the user already have a password? ('!' or '*' = none / locked)
+- name: Read existing password status
+  ansible.builtin.getent:
+    database: shadow
+    key: "{{ user_account_name }}"
+    fail_key: false
+
+- name: Check settings
+  ansible.builtin.assert:
+    that:
+      - user_account_name | length > 0
+      - user_account_sudo in ['none', 'password', 'nopassword']
+      - user_account_password | length > 0 or user_account_has_password
+    fail_msg: >-
+      Need a user name and a password ({{ user_account_name }} has none yet), and sudo
+      must be none, password or nopassword.
+  vars:
+    user_account_has_password: "{{ (ansible_facts.getent_shadow[user_account_name] | default(none, true) or ['!'])[0] is not match('[!*]') }}"
+
+- name: Create user
+  ansible.builtin.user:
+    name: "{{ user_account_name }}"
+    shell: /bin/bash
+    groups: "{{ user_account_all_groups or omit }}"
+    append: "{{ user_account_all_groups | length > 0 }}"   # add to these, keep existing groups
+  vars:
+    user_account_all_groups: "{{ user_account_groups + (['sudo'] if user_account_sudo != 'none' else []) }}"
+  register: user_account_result
+
+- name: Read sudo group members
+  ansible.builtin.getent:
+    database: group
+    key: sudo
+
+- name: Remove from sudo group (sudo=none)
+  ansible.builtin.command:
+    argv: [gpasswd, -d, "{{ user_account_name }}", sudo]
+  when:
+    - user_account_sudo == 'none'
+    - user_account_name in ansible_facts.getent_group.sudo[2].split(',')
+  changed_when: true
+
+# Console / su / sudo only, NOT SSH (SSH is key-only).
+- name: Set password
+  ansible.builtin.command: chpasswd
+  args:
+    stdin: "{{ user_account_name }}:{{ user_account_password }}"
+  no_log: true
+  changed_when: false
+  when: user_account_password | length > 0
+
+- name: Configure sudo
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-{{ user_account_name }}"
+    content: "{{ user_account_sudo_line }}\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+  vars:
+    user_account_sudo_line: >-
+      {{ user_account_name ~ ' ALL=(ALL) NOPASSWD:ALL'
+         if user_account_sudo == 'nopassword' else
+         'Defaults:' ~ user_account_name ~ ' timestamp_timeout=' ~ ((user_account_sudo_timeout_hours | float) * 60) | int }}
+  when: user_account_sudo != 'none'
+
+- name: No sudo drop-in for sudo=none
+  ansible.builtin.file:
+    path: "/etc/sudoers.d/90-{{ user_account_name }}"
+    state: absent
+  when: user_account_sudo == 'none'
+
+- name: Create .ssh directory
+  ansible.builtin.file:
+    path: "{{ user_account_result.home }}/.ssh"
+    state: directory
+    owner: "{{ user_account_name }}"
+    group: "{{ user_account_name }}"
+    mode: "0700"
+
+- name: Add pasted public key
+  ansible.posix.authorized_key:
+    user: "{{ user_account_name }}"
+    key: "{{ user_account_ssh_keys_from }}"
+  when: user_account_ssh_keys_from is match('(ssh-|ecdsa-|sk-)')
+
+- name: Copy SSH keys from another user
+  when:
+    - user_account_ssh_keys_from not in ['', 'none']
+    - user_account_ssh_keys_from is not match('(ssh-|ecdsa-|sk-)')
+  block:
+    - name: Look up source user
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ user_account_ssh_keys_from }}"
+
+    # Fails if the source has no authorized_keys — on purpose: for the admin,
+    # linux_ssh_setup would otherwise lock you out. force: false seeds the file once.
+    - name: Copy authorized_keys
+      ansible.builtin.copy:
+        src: "{{ ansible_facts.getent_passwd[user_account_ssh_keys_from][4] }}/.ssh/authorized_keys"
+        dest: "{{ user_account_result.home }}/.ssh/authorized_keys"
+        remote_src: true
+        force: false
+        owner: "{{ user_account_name }}"
+        group: "{{ user_account_name }}"
+        mode: "0600"
+
+- name: Enable lingering
+  ansible.builtin.command:
+    argv: [loginctl, enable-linger, "{{ user_account_name }}"]
+    creates: "/var/lib/systemd/linger/{{ user_account_name }}"
+  when: user_account_linger | bool
+
+- name: Summary
+  ansible.builtin.debug:
+    msg:
+      - "User {{ user_account_name }} ({{ user_account_result.home }}, shell /bin/bash)"
+      - >-
+        sudo: {{ {'none': 'none - cannot become root',
+                  'password': "yes, asks for " ~ user_account_name ~ "'s password, then not again for "
+                              ~ user_account_sudo_timeout_hours ~ "h in the same login session",
+                  'nopassword': 'yes, without a password - SSH key alone = root'}[user_account_sudo] }}
+      - "password: {{ 'set' if user_account_password | length > 0 else 'unchanged' }} - for su, sudo and the console; never SSH"
+      - >-
+        SSH: {{ 'pasted public key added'
+                if user_account_ssh_keys_from is match('(ssh-|ecdsa-|sk-)') else
+                'no keys added - cannot log in over SSH until you add one'
+                if user_account_ssh_keys_from in ['', 'none'] else
+                'keys copied from ' ~ user_account_ssh_keys_from ~ ' (only if ~/.ssh/authorized_keys did not exist) - whoever logs in as '
+                ~ user_account_ssh_keys_from ~ ' can also log in as ' ~ user_account_name }}
+      - >-
+        groups: {{ user_account_groups | join(', ') if user_account_groups else 'none' }}{{
+        ' - docker is effectively root' if 'docker' in user_account_groups else '' }}{{
+        ' - adm can read system logs' if 'adm' in user_account_groups else '' }}
+      - "lingering: {{ 'on - systemd user services start at boot and keep running after logout' if user_account_linger | bool else 'off' }}"
+      - "Next, as {{ user_account_name }}: install the dotfiles (git identity, mise)"

@@ -1,0 +1,30 @@
+---
+# System libraries and fonts Chromium needs (used by Playwright). The browser
+# itself is per user: 'npx playwright install chromium'.
+- name: Install Chromium dependencies
+  ansible.builtin.apt:
+    name:
+      # Libraries
+      - libnss3         # crypto library
+      - libnspr4        # NSS runtime
+      - fonts-liberation # standard fonts
+
+      # Fonts and virtual display
+      # (list from 'npx playwright install-deps --dry-run chromium')
+      - fonts-freefont-ttf
+      - fonts-ipafont-gothic
+      - fonts-noto-color-emoji
+      - fonts-tlwg-loma-otf
+      - fonts-unifont
+      - fonts-wqy-zenhei
+      - libfontenc1
+      - libxfont2
+      - x11-xkb-utils
+      - xauth
+      - xfonts-cyrillic
+      - xfonts-encodings
+      - xfonts-scalable
+      - xfonts-utils
+      - xserver-common
+      - xvfb            # virtual display
+    state: present

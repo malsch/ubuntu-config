@@ -1,0 +1,17 @@
+---
+# Enforced by sshd on every login, independent of the socket activation
+# Ubuntu 26.04 uses for the port. The restart runs at the very end of the play.
+# Used by ssh-setup.yml, not playbook.yml: see the check there.
+- name: Harden SSH (key-only, no root login)
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/99-hardening.conf
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PubkeyAuthentication yes
+      X11Forwarding no
+      MaxAuthTries 3
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Restart ssh

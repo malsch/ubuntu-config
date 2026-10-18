@@ -5,44 +5,24 @@ optional git-push deployment mechanism.
 
 | File | Run as | What it does |
 |---|---|---|
-| [`setup-hetzner-vps.sh`](setup-hetzner-vps.sh) | `root` | The main build script. Idempotent. |
+| [`setup-hetzner-vps/`](setup-hetzner-vps) | `root` (Ansible, runs on the server) | The main setup playbook. Idempotent. |
 | [`setup-agent-user.sh`](setup-agent-user.sh) | `root` (via `sudo`) | Creates the unprivileged `aiagent` account. Run after the main script. Idempotent. |
 | [`git-based-docker-compose-deployment.sh`](git-based-docker-compose-deployment.sh) | `aiagent` | Bare repos + `post-receive` hooks, so `git push` deploys. Untested, and independent of the rest of this repo. |
 
-## `setup-hetzner-vps.sh`
+## `setup-hetzner-vps/`
 
-Run once as root on a freshly provisioned server. Re-running is safe.
+An Ansible playbook that runs on the server itself and sets it up
+(`hosts: localhost`): UFW, SSH hardening, fail2ban, unattended upgrades, an admin account,
+swap, journald size cap, Docker, NetBird, and mise. Usage is in its
+[README](setup-hetzner-vps/README.md):
 
 ```bash
-scp init-vps/setup-hetzner-vps.sh root@<server-ip>:/root/
+cd init-vps/setup-hetzner-vps && ./run.sh
 ```
-
-```bash
-ssh root@<server-ip> 'bash /root/setup-hetzner-vps.sh'
-```
-
-Edit the configuration block at the top first — at minimum `NETBIRD_SETUP_KEY`,
-`ADMIN_USERNAME`, and `ADMIN_PASSWORD`.
-
-It covers, in 14 sections:
-
-- **Security** — UFW (default deny inbound, tunnel traffic trusted), SSH
-  hardening (key-only, no root login), fail2ban, unattended security upgrades
-  with 4am reboots.
-- **Users** — an admin account with passwordless sudo, seeded with root's SSH
-  key and given a git commit identity.
-- **System** — timezone, swap file, journald size cap.
-- **Packages** — Docker Engine + Compose (with log rotation and `live-restore`),
-  NetBird, mise, git, syncthing, htop, rsync.
-
-**Before you close the root session**, open a new terminal and confirm you can
-SSH in as the admin user — root login is disabled by the time the script
-finishes. The script's closing message lists the remaining manual steps
-(Hetzner Cloud Firewall rules, `netbird status -d`).
 
 ## `setup-agent-user.sh`
 
-Run after `setup-hetzner-vps.sh`, from the admin account (root login is off by
+Run after the `setup-hetzner-vps` playbook, from the admin account (root login is off by
 then):
 
 ```bash

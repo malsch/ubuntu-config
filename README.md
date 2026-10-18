@@ -6,7 +6,7 @@ Initialization scripts and configuration for a small single-box Ubuntu 26.04 VPS
 | File | Run as | What it does |
 |---|---|---|
 | **📁 [`init-vps/`](init-vps)** | | **Server setup: hardening, users, Docker, mise, NetBird.** → [README](init-vps/README.md) |
-| &nbsp;&nbsp;&nbsp;&nbsp;├─ [`setup-hetzner-vps.sh`](init-vps/setup-hetzner-vps.sh) | `root` | The main build script. UFW, SSH hardening, fail2ban, admin account, swap, unattended upgrades, Docker, NetBird, mise. Idempotent. |
+| &nbsp;&nbsp;&nbsp;&nbsp;├─ [`setup-hetzner-vps/`](init-vps/setup-hetzner-vps) | `root` (on the server) | Ansible playbook, the main setup. UFW, SSH hardening, fail2ban, admin account, swap, unattended upgrades, Docker, NetBird, mise. Idempotent. |
 | &nbsp;&nbsp;&nbsp;&nbsp;├─ [`setup-agent-user.sh`](init-vps/setup-agent-user.sh) | `root` | Creates the unprivileged `aiagent` account (groups, `/opt` dirs, mise). Run after the main script. Idempotent. |
 | &nbsp;&nbsp;&nbsp;&nbsp;└─ [`git-based-docker-compose-deployment.sh`](init-vps/git-based-docker-compose-deployment.sh) | `aiagent` | Sets up bare repos + `post-receive` hooks so that `git push` deploys a compose stack. Not tested and not related to other parts here. |
 | **📁 [`init-hermes-agent/`](init-hermes-agent)** | | **[Hermes](https://hermes-agent.nousresearch.com/) + the [hermes-webui](https://github.com/nesquena/hermes-webui) frontend.** → [README](init-hermes-agent/README.md) |
@@ -20,11 +20,11 @@ Initialization scripts and configuration for a small single-box Ubuntu 26.04 VPS
 | **📁 [`cheatsheets/`](cheatsheets)** | | **CLI references** |
 | &nbsp;&nbsp;&nbsp;&nbsp;├─ [`docker-compose.md`](cheatsheets/docker-compose.md) | — | Generic Compose reference — lifecycle, logs, shelling in, volume and port gotchas. |
 | &nbsp;&nbsp;&nbsp;&nbsp;└─ [`hermes-cli.md`](cheatsheets/hermes-cli.md) | — | `hermes` subcommands and in-session slash commands. |
+| **📁 [`dotfiles/`](dotfiles)** | | **Per-user shell, git identity and mise settings.** → [README](dotfiles/README.md) |
+| &nbsp;&nbsp;&nbsp;&nbsp;└─ [`install.sh`](dotfiles/install.sh) | each user | Links the dotfiles into your home directory. Idempotent. |
 
-Dotfiles live in a separate repo: **<https://github.com/malsch/dotfiles>** *(not implemented yet)*.
-
-These are working notes as much as they are scripts. `init-vps/setup-hetzner-vps.sh`
-runs end to end unattended; the other files are a mix of runnable scripts,
+These are working notes as much as they are scripts. The `init-vps/setup-hetzner-vps`
+playbook runs end to end unattended; the other files are a mix of runnable scripts,
 templates, and copy-paste command sequences. Read before running — several of
 them contain placeholders (`<PASSWORD>`, `<private-vpn-ip>`, `<your-domain.example>`)
 that must be filled in first.
@@ -42,5 +42,4 @@ Hetzner Cloud Firewall and by UFW.
 
 ## Related
 
-- [malsch/dotfiles](https://github.com/malsch/dotfiles) — shell and editor
-  configuration for these machines *(not implemented yet)*
+- [`dotfiles/`](dotfiles) — shell, git and mise configuration for these machines

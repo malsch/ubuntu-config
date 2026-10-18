@@ -1,0 +1,21 @@
+---
+# fail2ban: bans IPs after repeated failed SSH logins. It keeps bots off the
+# port and the logs quiet. Settings: files/jail.local.
+- name: Install fail2ban
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+
+# fail2ban writes bans straight into nftables, independent of UFW.
+- name: Configure fail2ban
+  ansible.builtin.copy:
+    src: jail.local
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+  notify: Restart fail2ban
+
+- name: Enable fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
