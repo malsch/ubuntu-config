@@ -1,8 +1,8 @@
 # SSH hardening: key-only logins via SSH, no root login (see role linux_ssh_setup).
 # Run it only after you have logged in over SSH as your admin account,
-# so a working non-root login is proven before root login is switched off. 
+# so a working non-root login is proven before root login is switched off.
 # From that admin session:
-#     sudo ansible-playbook ssh-setup.yml
+#     sudo ansible-playbook vps-init-ssh-setup-playbook.yml
 - name: SSH hardening
   hosts: localhost        # the server itself: no inventory, no SSH
   connection: local
@@ -18,7 +18,7 @@
         that: ssh_setup_user | length > 0 and ssh_setup_user != 'root'
         fail_msg: >-
           Log in over SSH as your admin account (not root) and run
-          'sudo ansible-playbook ssh-setup.yml' from there.
+          'sudo ansible-playbook vps-init-ssh-setup-playbook.yml' from there.
 
     - name: Look up the admin's home folder
       ansible.builtin.getent:

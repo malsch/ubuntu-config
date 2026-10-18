@@ -99,7 +99,7 @@
     - { role: install_unattended-upgrades, tags: ['updates', 'automatic'] }
     - { role: linux_swap, tags: ['system', 'swap'] }
     - { role: mise, tags: ['packages', 'mise'] }
-    # The admin account: you. Other users: create-user.yml.
+    # The admin account: you. Other users: create-user-playbook.yml.
     - role: user_account
       tags: ['users']
       vars:
@@ -121,5 +121,5 @@
           - "Root SSH login is still allowed. Next, in a NEW terminal:"
           - "  ssh {{ admin_username }}@<server-ip>"
           - "Once that works, from that session:"
-          - "  cd {{ playbook_dir }} && sudo ansible-playbook ssh-setup.yml"
+          - "  cd {{ playbook_dir }} && sudo ansible-playbook vps-init-ssh-setup-playbook.yml"
           - "It disables root and password logins."

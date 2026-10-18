@@ -1,8 +1,8 @@
 # Create (or update) one login account, asking for the important decisions.
 # Run on the server, from this directory:
-#     sudo ansible-playbook create-user.yml
+#     sudo ansible-playbook create-user-playbook.yml
 # Skip questions by answering on the command line:
-#     sudo ansible-playbook create-user.yml -e username=alice -e sudo=no
+#     sudo ansible-playbook create-user-playbook.yml -e username=alice -e sudo=no
 # (A pasted public key contains spaces; on the command line pass it as JSON:
 #  -e '{"ssh_keys_from": "ssh-ed25519 AAAA... me@laptop"}')
 - name: Create a user

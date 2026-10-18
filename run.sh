@@ -12,7 +12,7 @@ LOG_FILE="logs/ansible_run_${TIMESTAMP}.log"
 REPORT_FILE="logs/ansible_report_${TIMESTAMP}.html"
 
 echo "Starting Ansible playbook execution at $(date)"
-ansible-playbook playbook.yml "$@" 2>&1 | tee "${LOG_FILE}"
+ansible-playbook vps-init-playbook.yml "$@" 2>&1 | tee "${LOG_FILE}"
 ANSIBLE_STATUS=${PIPESTATUS[0]}   # ansible-playbook's exit code, not tee's
 
 if [[ ${ANSIBLE_STATUS} -eq 0 ]]; then
