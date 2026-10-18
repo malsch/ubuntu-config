@@ -13,6 +13,16 @@
 #
 # Idempotent: re-running is safe.
 
+# ----------------------------------------------------------------------------
+# 3. Create new directories  -> not sure if its worth keeping somewhere.
+#     These live under /opt, so only root can create them — and ${USERNAME} has
+#     no sudo to do it itself. setup-agent.sh then fills them in unprivileged.
+#
+#     Probably not standard to do it this way..., use it or not.
+# ----------------------------------------------------------------------------
+log "Creating /opt/stacks and /opt/repos for ${USERNAME}"
+install -d -o "${USERNAME}" -g "${USERNAME}" /opt/stacks /opt/repos
+
 set -euo pipefail
 
 # ----------------------------------------------------------------------------
