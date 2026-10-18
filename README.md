@@ -6,7 +6,8 @@ Initialization scripts and configuration for a small single-box Ubuntu 26.04 VPS
 | File | Run as | What it does |
 |---|---|---|
 | **📁 [`init-vps/`](init-vps)** | | **Server setup: hardening, users, Docker, mise, NetBird.** → [README](init-vps/README.md) |
-| &nbsp;&nbsp;&nbsp;&nbsp;├─ [`setup-hetzner-vps.sh`](init-vps/setup-hetzner-vps.sh) | `root` | The main build script. UFW, SSH hardening, fail2ban, two user accounts, swap, unattended upgrades, Docker, NetBird, mise. Idempotent. |
+| &nbsp;&nbsp;&nbsp;&nbsp;├─ [`setup-hetzner-vps.sh`](init-vps/setup-hetzner-vps.sh) | `root` | The main build script. UFW, SSH hardening, fail2ban, admin account, swap, unattended upgrades, Docker, NetBird, mise. Idempotent. |
+| &nbsp;&nbsp;&nbsp;&nbsp;├─ [`setup-agent-user.sh`](init-vps/setup-agent-user.sh) | `root` | Creates the unprivileged `aiagent` account (groups, `/opt` dirs, mise). Run after the main script. Idempotent. |
 | &nbsp;&nbsp;&nbsp;&nbsp;└─ [`git-based-docker-compose-deployment.sh`](init-vps/git-based-docker-compose-deployment.sh) | `aiagent` | Sets up bare repos + `post-receive` hooks so that `git push` deploys a compose stack. Not tested and not related to other parts here. |
 | **📁 [`init-hermes-agent/`](init-hermes-agent)** | | **[Hermes](https://hermes-agent.nousresearch.com/) + the [hermes-webui](https://github.com/nesquena/hermes-webui) frontend.** → [README](init-hermes-agent/README.md) |
 | &nbsp;&nbsp;&nbsp;&nbsp;├─ [`setup-hermes.sh`](init-hermes-agent/setup-hermes.sh) | `aiagent` | Installation walkthrough — dependencies, the Hermes installer, Playwright's Chromium libraries, gateway and webui as systemd user services. Read and adapt; do not pipe to bash. |

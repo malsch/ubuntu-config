@@ -3,7 +3,7 @@
 # Server setup: everything that needs root on a
 # fresh Hetzner server running Ubuntu 26.04 LTS (Resolute Raccoon):
 # 1. Security hardening: UFW, fail2ban, SSH, VPN connection, unattended-upgrades (sections 1–3, 8)
-# 2. System configuration and User management: Timezone, swap, create admin and regular user accounts (sections 4–6, 11)
+# 2. System configuration and User management: Timezone, swap, create admin account (sections 4–6, 11)
 # 3. Frequently required packages: Docker, Netbird, git, mise, syncthing, htop, rsync (sections 7, 9, 10, 12)
 #
 # SSH connection via port 22, all other ports closed by Hetzner Cloud Firewall.
@@ -22,10 +22,13 @@
 #  - Hetzner Cloud Firewall allows inbound 22/tcp (SSH), outbound everything
 #  - for NetBird VPN: create free account and setup key (https://docs.netbird.io/manage/peers/register-machines-using-setup-keys)
 #
+# The agent account (aiagent) is set up separately afterwards, by
+# setup-agent-user.sh.
+#
 # Idempotent: re-running is safe.
 #
 # IMPORTANT: When it finishes, open a NEW terminal and confirm you can log in
-# as the new users BEFORE closing your current root session — root SSH login is
+# as the admin user BEFORE closing your current root session — root SSH login is
 # disabled by then.
 
 set -euo pipefail
@@ -37,16 +40,12 @@ NETBIRD_SETUP_KEY="5CD****" # required for NetBird VPN (password manager)
 
 ADMIN_USERNAME=""        # you. Sudo rights, administers the box.
 ADMIN_PASSWORD="<PASSWORD>"   # password for console/su login as ${ADMIN_USERNAME}.
-USERNAME="aiagent"            # the agent. NO sudo — it only owns its stacks.
 
-# Git commit identities. Empty => <user>@<hostname> / <user>@<hostname>.local
-# (the .local domain is reserved and undeliverable, so machine-made commits are
-# obviously machine-made). For the ADMIN, set your real name and email here so
-# commits you make on the server are attributed to you properly.
+# Git commit identity. Empty => <user>@<hostname> / <user>@<hostname>.local
+# Set your real name and email here so commits you make on the server are
+# attributed to you properly.
 ADMIN_GIT_USER_NAME=""
 ADMIN_GIT_USER_EMAIL=""
-GIT_USER_NAME=""    # commit identity for ${USERNAME}
-GIT_USER_EMAIL=""
 
 SSH_PASSWORD_AUTH="no"        # "no" = key-only SSH (recommended); "yes" opens SSH to password brute-force attacks.
 TIMEZONE="Europe/Berlin"
@@ -184,42 +183,30 @@ log "Setting timezone to ${TIMEZONE}"
 timedatectl set-timezone "${TIMEZONE}"
 
 # ----------------------------------------------------------------------------
-# 5. Create the two non-root accounts, copy SSH keys in
+# 5. Create the admin account, copy SSH keys in
 #
 #    ${ADMIN_USERNAME} — you. In the sudo group, so it administers the box.
-#    ${USERNAME}       — the agent. Deliberately NOT in sudo: if the agent goes
-#                        off the rails it can wreck its own stacks and nothing
-#                        else. Escalate from ${ADMIN_USERNAME} instead.
+#    (The agent account is created by setup-agent-user.sh.)
 #
-#    Both get root's SSH key so you can log in as either. Both are created with
-#    --disabled-password (no password hash at all), so neither can be reached
-#    by password guessing; key auth is the only way in.
+#    Gets root's SSH key. Created with --disabled-password (no password hash
+#    at all), so it cannot be reached by password guessing; key auth is the
+#    only way in.
 # ----------------------------------------------------------------------------
-# Copy /root/.ssh/authorized_keys to a user, with the strict perms sshd demands.
-install_ssh_key() {
-  local u="$1"
-  if [[ -f /root/.ssh/authorized_keys ]]; then
-    install -d -m 700 -o "${u}" -g "${u}" "/home/${u}/.ssh"
-    install -m 600 -o "${u}" -g "${u}" \
-      /root/.ssh/authorized_keys "/home/${u}/.ssh/authorized_keys"
-  else
-    warn "No /root/.ssh/authorized_keys found. Ensure ${u} has an SSH key"
-    warn "BEFORE you log out, or you may lock yourself out."
-  fi
-}
-
-log "Creating agent user '${USERNAME}' (no sudo, with id 1000)"
-if ! id "${USERNAME}" &>/dev/null; then
-  adduser --disabled-password --gecos "" "${USERNAME}"
-fi
-install_ssh_key "${USERNAME}"
-
 log "Creating admin user '${ADMIN_USERNAME}'"
 if ! id "${ADMIN_USERNAME}" &>/dev/null; then
   adduser --disabled-password --gecos "" "${ADMIN_USERNAME}"
 fi
 usermod -aG sudo "${ADMIN_USERNAME}"
-install_ssh_key "${ADMIN_USERNAME}"
+
+# Copy /root/.ssh/authorized_keys over, with the strict perms sshd demands.
+if [[ -f /root/.ssh/authorized_keys ]]; then
+  install -d -m 700 -o "${ADMIN_USERNAME}" -g "${ADMIN_USERNAME}" "/home/${ADMIN_USERNAME}/.ssh"
+  install -m 600 -o "${ADMIN_USERNAME}" -g "${ADMIN_USERNAME}" \
+    /root/.ssh/authorized_keys "/home/${ADMIN_USERNAME}/.ssh/authorized_keys"
+else
+  warn "No /root/.ssh/authorized_keys found. Ensure ${ADMIN_USERNAME} has an SSH key"
+  warn "BEFORE you log out, or you may lock yourself out."
+fi
 
 # Admin account password (console / su / sudo — NOT SSH unless
 # SSH_PASSWORD_AUTH=yes).
@@ -242,30 +229,17 @@ else
 fi
 rm -f "${SUDOERS_TMP}"
 
-# Git commit identities. Installs git first: this runs before section 7, and
+# Git commit identity. Installs git first: this runs before section 7, and
 # Ubuntu's cloud image does not ship it.
 # -H makes --global write to THAT user's ~/.gitconfig rather than root's.
 apt_get install git
-set_git_identity() {
-  local u="$1" name="${2:-}" email="${3:-}"
-  name="${name:-${u}@$(hostname)}"
-  email="${email:-${u}@$(hostname).local}"
-  log "Setting git identity for ${u}: ${name} <${email}>"
-  sudo -u "${u}" -H git config --global user.name  "${name}"
-  sudo -u "${u}" -H git config --global user.email "${email}"
-}
-set_git_identity "${ADMIN_USERNAME}" "${ADMIN_GIT_USER_NAME}" "${ADMIN_GIT_USER_EMAIL}"
-set_git_identity "${USERNAME}"       "${GIT_USER_NAME}"       "${GIT_USER_EMAIL}"
+ADMIN_GIT_USER_NAME="${ADMIN_GIT_USER_NAME:-${ADMIN_USERNAME}@$(hostname)}"
+ADMIN_GIT_USER_EMAIL="${ADMIN_GIT_USER_EMAIL:-${ADMIN_USERNAME}@$(hostname).local}"
+log "Setting git identity for ${ADMIN_USERNAME}: ${ADMIN_GIT_USER_NAME} <${ADMIN_GIT_USER_EMAIL}>"
+sudo -u "${ADMIN_USERNAME}" -H git config --global user.name  "${ADMIN_GIT_USER_NAME}"
+sudo -u "${ADMIN_USERNAME}" -H git config --global user.email "${ADMIN_GIT_USER_EMAIL}"
 
-# ----------------------------------------------------------------------------
-# 6. Deploy directories, owned by the agent
-#     These live under /opt, so only root can create them — and ${USERNAME} has
-#     no sudo to do it itself. setup-agent.sh then fills them in unprivileged.
-#
-#     Probably not standard to do it this way..., use it or not.
-# ----------------------------------------------------------------------------
-log "Creating /opt/stacks and /opt/repos for ${USERNAME}"
-install -d -o "${USERNAME}" -g "${USERNAME}" /opt/stacks /opt/repos
+# (Section 6, the agent's deploy directories, moved to setup-agent-user.sh.)
 
 # ----------------------------------------------------------------------------
 # 7. System update + base packages
@@ -342,7 +316,6 @@ if add-apt-repository -y ppa:jdxcode/mise >/dev/null \
     fi
   }
   activate_mise_for "${ADMIN_USERNAME}"
-  activate_mise_for "${USERNAME}"
 else
   # Drop the sources entry if it was added, so every later 'apt-get update'
   # does not warn about a repo with no release file.
@@ -393,11 +366,8 @@ apt_get install \
   docker-ce docker-ce-cli containerd.io \
   docker-buildx-plugin docker-compose-plugin
 # NOTE: the docker group is effectively root — a member can bind-mount / into a
-# privileged container. So this hands ${USERNAME} a root-equivalent capability
-# despite it having no sudo. It needs it to run its own compose stacks; if you
-# want the agent genuinely confined, switch it to rootless Docker instead.
+# privileged container.
 usermod -aG docker "${ADMIN_USERNAME}"
-usermod -aG docker "${USERNAME}"
 
 # ----------------------------------------------------------------------------
 # 13. Docker daemon config — log rotation + sane defaults
@@ -434,9 +404,8 @@ SystemMaxFileSize=100M
 EOF
 sudo systemctl restart systemd-journald
 
-log "Add both users to adm group - grants read access to log files"
+log "Add ${ADMIN_USERNAME} to adm group - grants read access to log files"
 usermod -aG adm "${ADMIN_USERNAME}"
-usermod -aG adm "${USERNAME}"
 
 # ----------------------------------------------------------------------------
 # Done
@@ -445,9 +414,8 @@ log "Setup complete."
 cat <<EOF
 
 Next steps:
-  1. In a NEW terminal, verify SSH login as BOTH new users:
-         ssh ${ADMIN_USERNAME}@<server-ip>   # your admin account
-         ssh ${USERNAME}@<server-ip>   # the agent (no sudo)
+  1. In a NEW terminal, verify SSH login as the admin user:
+         ssh ${ADMIN_USERNAME}@<server-ip>
      Only close this root session once that works — root login is now off.
      Sanity checks:
          ss -tnlp | grep ":22"
@@ -465,39 +433,16 @@ Next steps:
          netbird status -d
      Do you see your peers? Is Connection type: P2P (peer-to-peer) or Relay (slower)?
 
-  3. Verify Docker (log in as ${USERNAME} so the docker group applies):
+  3. Verify Docker (log in again as ${ADMIN_USERNAME} so the docker group applies):
          docker run --rm hello-world
          docker compose version
 
-  4. Syncthing (optional, for file sync between your laptop and server).
-     With this setup only reachable over NetBird, so it is not exposed to the public internet.
-     Its web UI binds to 127.0.0.1:8384 and has no password until you set one,
-     so do not open that port. Reach it by tunnelling:
-         ssh -L 8384:localhost:8384 ${USERNAME}@<server-ip>
+  4. Set up the agent account (user, groups, /opt dirs, mise; prints its own
+     next steps, including syncthing):
+         scp setup-agent-user.sh ${ADMIN_USERNAME}@<server-ip>:~/
+         ssh ${ADMIN_USERNAME}@<server-ip> 'sudo bash ~/setup-agent-user.sh'
 
-     As ${USERNAME}:
-         syncthing                                        # configure, then Ctrl-C
-         systemctl --user enable --now syncthing.service
-         systemctl --user disable --now syncthing.service # undo
-
-      Configuration:
-        - nur localhost hat Zugriff auf GUI (keine Authentifizierung erforderlich)
-        - turn off global discoery? (Globale Gerätesuche)
-        - Gerätekennung vom Peer eingeben (der Peer muss die Verbindung bestätigen)
-        - erweitert->address (auf beiden Rechnern): tcp://<netbird-name>.netbird.cloud:22000 (avoids using the syncthing relay-server)
-
-     Service is currently killed the moment ${USERNAME}'s last session ends; sync then stops until the next login.
-     To keep working, enable:
-         sudo loginctl enable-linger ${USERNAME}
-
-  5. NOT UP TO DATE:Run part 2 as ${USERNAME} — it sets up the Caddy stack and the git
-     deploy repos. Copy it over and run it from that session (NOT as root,
-     and not via sudo — the docker group only applies to a fresh login):
-         scp setup-agent.sh ${USERNAME}@<server-ip>:~/
-         ssh ${USERNAME}@<server-ip>
-         bash ~/setup-agent.sh
-
-  6. Install quarto? And then R, python, tex, ...:
+  5. Install quarto? And then R, python, tex, ...:
         wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.18/quarto-1.10.18-linux-amd64.deb (https://quarto.org/docs/get-started/)
         sudo apt install ./quarto-1.10.18-linux-amd64.deb
         quarto check
@@ -505,11 +450,8 @@ Next steps:
 Worth knowing:
   * If you ever lock yourself out of SSH, the Hetzner Cloud Console (VNC) is
     your only way back — and it needs a password. Set ADMIN_PASSWORD in this
-    script, or run 'passwd ${ADMIN_USERNAME}' now. Both accounts are created
+    script, or run 'passwd ${ADMIN_USERNAME}' now. The account is created
     with no password at all, so without this there is no console login.
-  * ${USERNAME} has no sudo, but IS in the docker group — which is
-    root-equivalent (it can bind-mount / into a privileged container). Treat
-    "no sudo" as a guard against accidents, not as a sandbox.
   * mise is activated per user in ~/.bashrc, which only applies to interactive
     shells.
 
