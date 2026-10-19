@@ -18,11 +18,11 @@ On the fresh server, as root (on Oracle: as `ubuntu`, after `sudo -i`). Clone to
 `/opt/ubuntu-config`, not `/root`: the admin needs this folder later.
 
 ```bash
-apt update && apt install -y ansible git
+sudo apt update && sudo apt install -y ansible git
 ```
 
 ```bash
-git clone --depth 1 https://github.com/malsch/ubuntu-config.git /opt/ubuntu-config && cd /opt/ubuntu-config && ./run.sh
+sudo git clone --depth 1 https://github.com/malsch/ubuntu-config.git /opt/ubuntu-config && cd /opt/ubuntu-config && ./run.sh
 ```
 
 It first asks a few questions; nothing is stored:
