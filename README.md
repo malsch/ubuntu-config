@@ -19,6 +19,7 @@ On the fresh server, as root (on Oracle: as `ubuntu`, after `sudo -i`). Clone to
 
 ```bash
 sudo apt update && sudo apt install -y ansible git
+git config --global --add safe.directory /opt/ubuntu-config
 ```
 
 ```bash
