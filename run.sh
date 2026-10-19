@@ -6,7 +6,10 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
+# Logs can contain details about the server: readable by root only.
+umask 077
 mkdir -p logs
+chmod 700 logs   # also for a logs/ folder created before this line existed
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
 LOG_FILE="logs/ansible_run_${TIMESTAMP}.log"
 REPORT_FILE="logs/ansible_report_${TIMESTAMP}.html"
@@ -46,7 +49,6 @@ cat > "${REPORT_FILE}" <<EOF
         <h2>Execution Summary</h2>
         <p><strong>Date:</strong> $(date)</p>
         <p><strong>Status:</strong> <span class="${STATUS_CLASS}">${STATUS_TEXT}</span></p>
-        <p><strong>Arguments:</strong> $(printf '%s ' "$@" | html_escape)</p>
         <p><strong>Log File:</strong> ${LOG_FILE}</p>
     </div>
     <div class="section">

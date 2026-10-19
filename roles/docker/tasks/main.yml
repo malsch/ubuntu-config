@@ -51,7 +51,7 @@
     state: started
     enabled: true
 
-# NOTE: the docker group is effectively root.
+# NOTE: the docker group is effectively root (docker run -v /:/host ...)
 - name: Add admin to docker group
   ansible.builtin.user:
     name: "{{ admin_username }}"

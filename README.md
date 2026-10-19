@@ -1,11 +1,9 @@
 # ubuntu-config
 
-Ansible playbook that sets up a fresh Ubuntu 26.04
-LTS server (written for Ubuntu on Hetzner; also handles Oracle Cloud, and both 64-bit x86 (`x86_64`/`amd64`) and ARM (`aarch64`/`arm64`) servers). Oracle Cloud provides [Always Free Ressources](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm).
-
-
-It runs on the server itself (`hosts: localhost`, no SSH) and can safely be
-run more than once.
+Ansible playbooks that set up a fresh Ubuntu 26.04 LTS server on Hetzner or
+Oracle Cloud ([Always Free Resources](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm)),
+64-bit x86 (`x86_64`/`amd64`) or ARM (`aarch64`/`arm64`). They run on the server
+itself (`hosts: localhost`, no SSH) and can safely be run more than once.
 
 ## Requirements
 
@@ -16,11 +14,14 @@ run more than once.
 
 ## Usage
 
-On the fresh server, as root (on Oracle: as user `ubuntu`, after `sudo -i`). Clone to `/opt/ubuntu-config`, not /root: the admin needs this folder later.:
+On the fresh server, as root (on Oracle: as `ubuntu`, after `sudo -i`). Clone to
+`/opt/ubuntu-config`, not `/root`: the admin needs this folder later.
 
 ```bash
 apt update && apt install -y ansible git
+```
 
+```bash
 git clone --depth 1 https://github.com/malsch/ubuntu-config.git /opt/ubuntu-config && cd /opt/ubuntu-config && ./run.sh
 ```
 
@@ -28,8 +29,9 @@ It first asks a few questions; nothing is stored:
 
 - admin username and password (required; on later runs, empty keeps the current one);
 - how sudo behaves: by default it asks for the admin password, then not again
-  for 24 hours within the same login session; you can turn the password off
-  completely;
+  for 24 hours per login session; or no password at all. The admin is also in
+  the `docker` group, which gives root without a password, so the sudo password
+  guards against mistakes, not against someone holding your SSH key;
 - timezone (default Europe/Berlin);
 - NetBird [setup key](https://docs.netbird.io/manage/peers/register-machines-using-setup-keys)
   (needed on the first run; later, empty keeps the existing connection).
@@ -67,7 +69,7 @@ Arguments are passed through to `ansible-playbook`. For example, to run only
 some roles:
 
 ```bash
-./run.sh --tags "docker,security"
+sudo ./run.sh --tags "docker,security"
 ```
 
 ## More users: `create-user-playbook.yml`
@@ -137,11 +139,8 @@ sudo deluser --remove-home <user>
 sudo rm -f /etc/sudoers.d/90-<user>
 ```
 
-This stops the user's services, ends its processes, and removes the account,
-its home folder and its sudo settings. Files it owns elsewhere (e.g.
-`/opt/stacks`) stay; `deluser --remove-all-files` removes those too. Docker
-containers it started keep running, since Docker runs them, not the user: stop
-them with `docker compose down` first.
+Docker containers the user started keep running (Docker runs them, not the
+user): stop them with `docker compose down` first.
 
 ## Oracle Cloud
 
@@ -182,13 +181,13 @@ Adjustable settings live in each role's `defaults/main.yml` (e.g. `linux_swap_si
 
 ## Afterwards
 
-1. Check that you can log in as the admin user: `ssh <admin>@<server-ip>`
-2. Check the firewall: `sudo ufw status verbose` (Oracle: `sudo iptables -L INPUT -n`). Ports that Docker publishes
-   with `-p` bypass UFW, so bind them to `127.0.0.1` if they should not be public.
-3. Check NetBird: `netbird status -d`. Do your peers show up as P2P or as Relay?
-4. Check Docker: `docker run --rm hello-world`
-5. Set up the agent account with [`create-agent-user.sh`](create-agent-user.sh) (see above).
-6. Optional, Quarto (then R, Python, TeX, …): download the `.deb` from
+1. Check the firewall: `sudo ufw status verbose` (Oracle: `sudo iptables -L INPUT -n`).
+   Ports Docker publishes with `-p` bypass UFW: bind them to `127.0.0.1` unless
+   they should be public.
+2. Check NetBird: `netbird status -d`. Do your peers show up as P2P or as Relay?
+3. Check Docker: `docker run --rm hello-world`
+4. Set up the agent account with [`create-agent-user.sh`](create-agent-user.sh).
+5. Optional, Quarto (then R, Python, TeX, …): download the `.deb` from
    <https://quarto.org/docs/get-started/>, `sudo apt install ./quarto-*.deb`, `quarto check`.
 
 If you ever lock yourself out of SSH, the provider's web console (Hetzner: VNC
@@ -199,10 +198,10 @@ each user installs them from the [dotfiles repository](https://github.com/malsch
 
 ## Further inspiration
 
+- https://phelipetls.github.io/posts/introduction-to-ansible/
 - https://github.com/mist941/basic-server-configuration/tree/main/roles/automatic_updates/tasks
 
 ## Also in this repository
 
-- [`cloud-init`](cloud-init): example cloud config to paste when creating a
-  server (hostname, timezone, default user). Contains placeholders.
+- [`cloud-init`](cloud-init): Example cloud config to paste when creating a server (hostname, timezone, default user). Contains placeholders. It is basically a name to set the default admin user name and the host name (console: `<admin-user-name>@<hostname>`) before starting the server.
 - [`cheatsheets/`](cheatsheets): CLI references for Docker Compose and Hermes.

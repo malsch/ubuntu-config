@@ -39,8 +39,8 @@
       private: false
 
     - name: admin_passwordless_sudo
-      prompt: "Turn off the sudo password completely? Then your SSH key alone = root. (yes/no)"
-      default: "no"
+      prompt: "Turn off the sudo password completely (yes/no)? Since you are automatically added to the docker group, sudo password protection can be sidesteped using docker."
+      default: "yes"
       private: false
 
     - name: timezone

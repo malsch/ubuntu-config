@@ -45,7 +45,7 @@
       private: false
 
     - name: docker
-      prompt: "Add to docker group? Effectively root. (yes/no)"
+      prompt: "Add to docker group? Gives root access without a password; sudo with a password is safer. (yes/no)"
       default: "no"
       private: false
 
