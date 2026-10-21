@@ -1,5 +1,6 @@
 # Server setup for a fresh Ubuntu server (Hetzner or Oracle Cloud, x86 or ARM).
-# Run on the server itself via ./run.sh. See README.md.
+#     sudo ./run-ansible-logged.sh vps-init-playbook.yml
+# See README.md.
 - name: Basic server setup
   hosts: all              # localhost.ini: this server; or -i servers.ini for SSH
   become: true
@@ -35,16 +36,16 @@
       private: true
       confirm: true
 
-    - name: admin_sudo_timeout_hours
-      prompt: "sudo asks for the admin password, then not again for how many hours (per login session)?"
-      default: "24"
-      private: false
-
     - name: admin_passwordless_sudo
       prompt: >-
         Turn off the sudo password completely (yes/no)? Since you are automatically added
         to the docker group, sudo password protection can be sidesteped using docker.
       default: "yes"
+      private: false
+
+    - name: admin_sudo_timeout_hours
+      prompt: "Only used if you answered no: sudo asks for the admin password, then not again for how many hours (per login session)?"
+      default: "24"
       private: false
 
     - name: admin_shell
@@ -130,6 +131,6 @@
           - "Root SSH login is still allowed. Next, in a NEW terminal:"
           - "  ssh {{ admin_username }}@<server-ip>"
           - "Once that works, from that session:"
-          - "  cd {{ playbook_dir }} && sudo ansible-playbook vps-init-ssh-setup-playbook.yml"
-          - "(or from your computer: ansible-playbook -i <server-ip>, -u {{ admin_username }} -K vps-init-ssh-setup-playbook.yml)"
+          - "  cd {{ playbook_dir }} && sudo ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml"
+          - "(or from your computer: ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml -i <server-ip>, -u {{ admin_username }} -K)"
           - "It disables root and password logins via SSH."

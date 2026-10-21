@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# Runs vps-init-playbook.yml, or the playbook named first. Extra arguments go
-# to ansible-playbook:
-#     ./run.sh --tags docker
-#     ./run.sh --check --diff
-#     ./run.sh install-apps-playbook.yml
-# Each run writes a log and an HTML report to logs/.
+# Runs ansible-playbook and writes a log and an HTML report to logs/.
+# The playbook comes first; further arguments go to ansible-playbook:
+#     ./run-ansible-logged.sh vps-init-playbook.yml
+#     ./run-ansible-logged.sh vps-init-playbook.yml --tags docker
+#     ./run-ansible-logged.sh install-apps-playbook.yml --check --diff
 set -uo pipefail
 cd "$(dirname "$0")"
+
+if [[ "${1:-}" != *.yml ]]; then
+  echo "Usage: $0 <playbook>.yml [ansible-playbook options]" >&2
+  exit 2
+fi
+PLAYBOOK=$1
+NAME=$(basename "${PLAYBOOK}" .yml)
 
 # Logs can contain details about the server: readable by root and the sudo
 # group only (who could read them with sudo anyway).
@@ -15,14 +21,11 @@ mkdir -p logs
 chgrp -R sudo logs 2>/dev/null && chmod g+s logs   # new logs get group sudo too
 chmod -R g+rX,o-rwx logs   # also for logs written before this line existed
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-LOG_FILE="logs/ansible_run_${TIMESTAMP}.log"
-REPORT_FILE="logs/ansible_report_${TIMESTAMP}.html"
-
-PLAYBOOK=vps-init-playbook.yml
-if [[ "${1:-}" == *.yml ]]; then PLAYBOOK=$1; shift; fi
+LOG_FILE="logs/${TIMESTAMP}_${NAME}.log"
+REPORT_FILE="logs/${TIMESTAMP}_${NAME}.html"
 
 echo "Starting ${PLAYBOOK} at $(date)"
-ansible-playbook "${PLAYBOOK}" "$@" 2>&1 | tee "${LOG_FILE}"
+ansible-playbook "$@" 2>&1 | tee "${LOG_FILE}"
 ANSIBLE_STATUS=${PIPESTATUS[0]}   # ansible-playbook's exit code, not tee's
 
 if [[ ${ANSIBLE_STATUS} -eq 0 ]]; then

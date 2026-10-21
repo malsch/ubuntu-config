@@ -1,6 +1,6 @@
 # Apps for the work done on the server. Run after vps-init-playbook.yml, and
 # again whenever this list changes; it asks no questions. See README.md.
-#     sudo ./run.sh install-apps-playbook.yml
+#     sudo ./run-ansible-logged.sh install-apps-playbook.yml
 - name: Apps
   hosts: all              # localhost.ini: this server; or -i servers.ini for SSH
   become: true

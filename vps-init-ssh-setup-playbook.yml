@@ -2,9 +2,9 @@
 # Run it only after you have logged in over SSH as your admin account,
 # so a working non-root login is proven before root login is switched off.
 # From that admin session:
-#     sudo ansible-playbook vps-init-ssh-setup-playbook.yml
+#     sudo ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml
 # Or from your computer, logging in as the admin:
-#     ansible-playbook -i <server-ip>, -u <admin> -K vps-init-ssh-setup-playbook.yml
+#     ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml -i <server-ip>, -u <admin> -K
 - name: SSH hardening
   hosts: all              # localhost.ini: this server; or -i servers.ini for SSH
   become: true
@@ -20,7 +20,7 @@
         that: ssh_setup_user | length > 0 and ssh_setup_user != 'root'
         fail_msg: >-
           Log in over SSH as your admin account (not root) and run
-          'sudo ansible-playbook vps-init-ssh-setup-playbook.yml' from there,
+          'sudo ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml' from there,
           or from your computer use -u <admin> -K instead of -u root.
 
     - name: Look up the admin's home folder
