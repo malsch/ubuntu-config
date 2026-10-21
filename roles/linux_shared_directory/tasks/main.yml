@@ -1,0 +1,35 @@
+---
+# /srv/shared: a folder for the members of group 'shared' (users join it with
+# create-user-playbook.yml, which also links ~/shared to it).
+- name: Install ACL tools
+  ansible.builtin.apt:
+    name: acl
+    state: present
+
+- name: Create group shared
+  ansible.builtin.group:
+    name: shared
+    state: present
+
+# 2770: setgid (new files get group 'shared'), group may read and write,
+# no access for others.
+- name: Create /srv/shared
+  ansible.builtin.file:
+    path: /srv/shared
+    state: directory
+    owner: root
+    group: shared
+    mode: "2770"
+
+# Default ACL: new files are group-writable even when created with umask 022
+# (root, services, containers). Files moved in with mv keep their old group:
+# fix those with 'chgrp -R shared'.
+- name: Give group shared read and write on new files
+  ansible.posix.acl:
+    path: /srv/shared
+    etype: group
+    entity: shared
+    permissions: rwx
+    default: "{{ item }}"
+    state: present
+  loop: [false, true]   # the folder itself, and the default for new files

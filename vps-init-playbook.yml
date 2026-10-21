@@ -1,8 +1,7 @@
 # Server setup for a fresh Ubuntu server (Hetzner or Oracle Cloud, x86 or ARM).
 # Run on the server itself via ./run.sh. See README.md.
 - name: Basic server setup
-  hosts: localhost        # the server itself: no inventory, no SSH
-  connection: local
+  hosts: all              # localhost.ini: this server; or -i servers.ini for SSH
   become: true
 
   vars:
@@ -13,16 +12,19 @@
     # -e oracle_cloud=true or false.
     # https://docs.oracle.com/en-us/iaas/Content/Compute/known-issues.htm#ufw
     oracle_cloud: "{{ oracle_rules_file.stat.exists }}"
-    # Oracle blocks root SSH login (its root keys only print "login as ubuntu"),
-    # so the admin gets the ubuntu user's keys there instead.
-    admin_ssh_keys_from: "{{ 'ubuntu' if oracle_cloud | bool else 'root' }}"
 
   # Asked on every run, never stored. Skip a question with -e name=value,
   # e.g. -e timezone=Europe/Berlin, for unattended runs.
   vars_prompt:
     - name: admin_username
       prompt: "Admin username (you; sudo rights)"
-      default: "{{ lookup('env', 'SUDO_USER') }}"
+      private: false
+
+    # 'me' = the account running this: whoever ran sudo on the server (or logged in
+    # with -u over SSH), else root. Read on the server, so it also works remotely.
+    - name: admin_ssh_keys_from
+      prompt: "Admin SSH keys: copy from which user? ('me' = the account running this; or a username, a public key, or 'none')"
+      default: "me"
       private: false
 
     # Needed for sudo, su, and the console (Hetzner VNC / Oracle serial), your
@@ -39,8 +41,15 @@
       private: false
 
     - name: admin_passwordless_sudo
-      prompt: "Turn off the sudo password completely (yes/no)? Since you are automatically added to the docker group, sudo password protection can be sidesteped using docker."
+      prompt: >-
+        Turn off the sudo password completely (yes/no)? Since you are automatically added
+        to the docker group, sudo password protection can be sidesteped using docker.
       default: "yes"
+      private: false
+
+    - name: admin_shell
+      prompt: "Login shell? (bash or zsh)"
+      default: "bash"
       private: false
 
     - name: timezone
@@ -96,9 +105,9 @@
     - { role: firewall_oracle_iptables, tags: ['security', 'firewall', 'oracle'], when: oracle_cloud | bool }
     - { role: linux_fail2ban, tags: ['security', 'fail2ban'] }
     - { role: install_essential_packages, tags: ['packages', 'updates', 'system'] }
-    - { role: install_unattended-upgrades, tags: ['updates', 'automatic'] }
+    - { role: install_unattended_upgrades, tags: ['updates', 'automatic'] }
     - { role: linux_swap, tags: ['system', 'swap'] }
-    - { role: mise, tags: ['packages', 'mise'] }
+    - { role: linux_shared_directory, tags: ['system', 'shared'] }   # before user_account: it adds the group
     # The admin account: you. Other users: create-user-playbook.yml.
     - role: user_account
       tags: ['users']
@@ -107,10 +116,10 @@
         user_account_sudo: "{{ 'nopassword' if admin_passwordless_sudo | bool else 'password' }}"
         user_account_sudo_timeout_hours: "{{ admin_sudo_timeout_hours }}"
         user_account_password: "{{ admin_password }}"
+        user_account_shell: "{{ admin_shell }}"
         user_account_ssh_keys_from: "{{ admin_ssh_keys_from }}"
-        user_account_groups: [adm]   # docker is added by the docker role
+        user_account_groups: [adm, shared]   # docker is added by the docker role
         user_account_linger: false
-    - { role: install_chromium_dependencies, tags: ['packages', 'chromium'] }
     - { role: docker, tags: ['docker'] }
     - { role: linux_logging_setup, tags: ['logging'] }
 
@@ -122,4 +131,5 @@
           - "  ssh {{ admin_username }}@<server-ip>"
           - "Once that works, from that session:"
           - "  cd {{ playbook_dir }} && sudo ansible-playbook vps-init-ssh-setup-playbook.yml"
-          - "It disables root and password logins."
+          - "(or from your computer: ansible-playbook -i <server-ip>, -u {{ admin_username }} -K vps-init-ssh-setup-playbook.yml)"
+          - "It disables root and password logins via SSH."

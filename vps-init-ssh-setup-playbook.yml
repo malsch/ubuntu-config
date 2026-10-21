@@ -3,14 +3,16 @@
 # so a working non-root login is proven before root login is switched off.
 # From that admin session:
 #     sudo ansible-playbook vps-init-ssh-setup-playbook.yml
+# Or from your computer, logging in as the admin:
+#     ansible-playbook -i <server-ip>, -u <admin> -K vps-init-ssh-setup-playbook.yml
 - name: SSH hardening
-  hosts: localhost        # the server itself: no inventory, no SSH
-  connection: local
+  hosts: all              # localhost.ini: this server; or -i servers.ini for SSH
   become: true
 
   vars:
-    ansible_python_interpreter: /usr/bin/python3   # system python has python3-apt
-    ssh_setup_user: "{{ lookup('env', 'SUDO_USER') }}"
+    ansible_python_interpreter: /usr/bin/python3
+    # Read on the server: the admin who ran sudo, or logged in with -u over SSH.
+    ssh_setup_user: "{{ ansible_env.SUDO_USER | default('') }}"
 
   pre_tasks:
     - name: Check this runs via sudo from a normal account, not as root
@@ -18,7 +20,8 @@
         that: ssh_setup_user | length > 0 and ssh_setup_user != 'root'
         fail_msg: >-
           Log in over SSH as your admin account (not root) and run
-          'sudo ansible-playbook vps-init-ssh-setup-playbook.yml' from there.
+          'sudo ansible-playbook vps-init-ssh-setup-playbook.yml' from there,
+          or from your computer use -u <admin> -K instead of -u root.
 
     - name: Look up the admin's home folder
       ansible.builtin.getent:

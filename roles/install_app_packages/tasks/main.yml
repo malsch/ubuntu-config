@@ -1,0 +1,22 @@
+---
+# Packages for the work done on this server, not for running it
+# (those are in install_essential_packages).
+- name: Install app packages
+  ansible.builtin.apt:
+    name:
+      # Development
+      - ripgrep         # fast search
+
+      # Python build tools
+      - build-essential # compilers
+      - python3-dev     # Python headers
+      - libffi-dev      # FFI headers
+
+      # Media
+      - ffmpeg          # audio/video
+
+      # File transfer
+      - syncthing       # folder sync
+    update_cache: true
+    cache_valid_time: 3600
+    state: present

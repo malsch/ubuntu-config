@@ -1,21 +1,28 @@
 #!/usr/bin/env bash
-# Runs the playbook. Extra arguments go to ansible-playbook:
+# Runs vps-init-playbook.yml, or the playbook named first. Extra arguments go
+# to ansible-playbook:
 #     ./run.sh --tags docker
 #     ./run.sh --check --diff
+#     ./run.sh install-apps-playbook.yml
 # Each run writes a log and an HTML report to logs/.
 set -uo pipefail
 cd "$(dirname "$0")"
 
-# Logs can contain details about the server: readable by root only.
-umask 077
+# Logs can contain details about the server: readable by root and the sudo
+# group only (who could read them with sudo anyway).
+umask 027
 mkdir -p logs
-chmod 700 logs   # also for a logs/ folder created before this line existed
+chgrp -R sudo logs 2>/dev/null && chmod g+s logs   # new logs get group sudo too
+chmod -R g+rX,o-rwx logs   # also for logs written before this line existed
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
 LOG_FILE="logs/ansible_run_${TIMESTAMP}.log"
 REPORT_FILE="logs/ansible_report_${TIMESTAMP}.html"
 
-echo "Starting Ansible playbook execution at $(date)"
-ansible-playbook vps-init-playbook.yml "$@" 2>&1 | tee "${LOG_FILE}"
+PLAYBOOK=vps-init-playbook.yml
+if [[ "${1:-}" == *.yml ]]; then PLAYBOOK=$1; shift; fi
+
+echo "Starting ${PLAYBOOK} at $(date)"
+ansible-playbook "${PLAYBOOK}" "$@" 2>&1 | tee "${LOG_FILE}"
 ANSIBLE_STATUS=${PIPESTATUS[0]}   # ansible-playbook's exit code, not tee's
 
 if [[ ${ANSIBLE_STATUS} -eq 0 ]]; then
@@ -48,6 +55,7 @@ cat > "${REPORT_FILE}" <<EOF
     <div class="section">
         <h2>Execution Summary</h2>
         <p><strong>Date:</strong> $(date)</p>
+        <p><strong>Playbook:</strong> ${PLAYBOOK}</p>
         <p><strong>Status:</strong> <span class="${STATUS_CLASS}">${STATUS_TEXT}</span></p>
         <p><strong>Log File:</strong> ${LOG_FILE}</p>
     </div>

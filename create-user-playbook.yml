@@ -6,8 +6,7 @@
 # (A pasted public key contains spaces; on the command line pass it as JSON:
 #  -e '{"ssh_keys_from": "ssh-ed25519 AAAA... me@laptop"}')
 - name: Create a user
-  hosts: localhost        # the server itself: no inventory, no SSH
-  connection: local
+  hosts: all              # localhost.ini: this server; or -i servers.ini for SSH
   become: true
 
   vars:
@@ -39,9 +38,14 @@
       default: "no"
       private: false
 
+    - name: shell
+      prompt: "Login shell? (bash or zsh)"
+      default: "bash"
+      private: false
+
     - name: ssh_keys_from
-      prompt: "SSH keys: copy from which user? (or paste a public key, or 'none')"
-      default: "{{ lookup('env', 'SUDO_USER') | default('root', true) }}"
+      prompt: "SSH keys: copy from which user? ('me' = the account running this; or a username, a public key, or 'none')"
+      default: "me"
       private: false
 
     - name: docker
@@ -51,6 +55,11 @@
 
     - name: adm
       prompt: "Add to adm group, to read system logs? (yes/no)"
+      default: "no"
+      private: false
+
+    - name: shared
+      prompt: "Add to shared group, for /srv/shared (linked as ~/shared)? (yes/no)"
       default: "no"
       private: false
 
@@ -66,6 +75,7 @@
         user_account_sudo: "{{ 'none' if not sudo | bool else 'nopassword' if passwordless_sudo | bool else 'password' }}"
         user_account_sudo_timeout_hours: "{{ sudo_timeout_hours }}"
         user_account_password: "{{ password }}"
+        user_account_shell: "{{ shell }}"
         user_account_ssh_keys_from: "{{ ssh_keys_from }}"
-        user_account_groups: "{{ (['docker'] if docker | bool else []) + (['adm'] if adm | bool else []) }}"
+        user_account_groups: "{{ (['docker'] if docker | bool else []) + (['adm'] if adm | bool else []) + (['shared'] if shared | bool else []) }}"
         user_account_linger: "{{ linger | bool }}"
