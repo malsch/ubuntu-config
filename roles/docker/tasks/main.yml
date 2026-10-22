@@ -12,16 +12,22 @@
     content: "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ docker_codename }} stable\n"
     mode: "0644"
 
+# Docker's packages only from Docker's repository, and nothing else from it:
+# it must not replace Ubuntu packages (e.g. with a newer openssl).
 - name: Download Docker packages only from Docker's repository
   ansible.builtin.copy:
     dest: /etc/apt/preferences.d/docker
     content: |
       Package: {{ docker_packages | join(' ') }}
-      Pin: release o=Docker
+      Pin: origin download.docker.com
       Pin-Priority: 500
 
       Package: {{ docker_packages | join(' ') }}
       Pin: release o=*
+      Pin-Priority: -1
+
+      Package: *
+      Pin: origin download.docker.com
       Pin-Priority: -1
     mode: "0644"
   vars:

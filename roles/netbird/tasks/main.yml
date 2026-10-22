@@ -16,6 +16,8 @@
     content: "deb [signed-by=/etc/apt/keyrings/netbird.asc] https://pkgs.netbird.io/debian stable main\n"
     mode: "0644"
 
+# NetBird's packages only from NetBird's repository, and nothing else from it:
+# it must not replace Ubuntu packages.
 - name: Download NetBird packages only from NetBird's repository
   ansible.builtin.copy:
     dest: /etc/apt/preferences.d/netbird
@@ -26,6 +28,10 @@
 
       Package: {{ netbird_packages | join(' ') }}
       Pin: release o=*
+      Pin-Priority: -1
+
+      Package: *
+      Pin: origin pkgs.netbird.io
       Pin-Priority: -1
     mode: "0644"
   vars:

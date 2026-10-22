@@ -54,7 +54,7 @@ At the end it prints a summary of the choices and what they mean. Answers can
 also be given on the command line, e.g. `-e username=alice -e sudo=no`.
 
 For an `aiagent` user, [`create-agent-user.sh`](create-agent-user.sh) runs
-`create-user-playbook.yml` with fixed answers: `aiagent`, no sudo, bash, `docker` (Let's just hope the agent does not use it to get full root access, or one would need to look into rootless containers with podman etc), `adm` and `shared` groups, lingering on, SSH keys copied from you. Only the password is asked:
+`create-user-playbook.yml` with fixed answers: `aiagent`, no sudo, bash, `docker` (if the agent is malicious, this implies root access, see [Known trade-offs](security-architecture.md#known-trade-offs)), `adm` and `shared` groups, lingering off, SSH keys copied from you. Only the password is asked:
 
 ```bash
 sudo ./create-agent-user.sh    # works on server only, not via remote access

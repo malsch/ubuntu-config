@@ -10,7 +10,6 @@
       PasswordAuthentication no
       KbdInteractiveAuthentication no
       PubkeyAuthentication yes
-      X11Forwarding no
       MaxAuthTries 3
     mode: "0644"
     validate: /usr/sbin/sshd -t -f %s

@@ -16,6 +16,25 @@
     content: "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.asc] https://mise.jdx.dev/deb stable main\n"
     mode: "0644"
 
+# mise only from mise's repository, and nothing else from it: it must not
+# replace Ubuntu packages.
+- name: Download mise only from mise's repository
+  ansible.builtin.copy:
+    dest: /etc/apt/preferences.d/mise
+    content: |
+      Package: mise
+      Pin: origin mise.jdx.dev
+      Pin-Priority: 500
+
+      Package: mise
+      Pin: release o=*
+      Pin-Priority: -1
+
+      Package: *
+      Pin: origin mise.jdx.dev
+      Pin-Priority: -1
+    mode: "0644"
+
 - name: Install mise
   ansible.builtin.apt:
     name: mise

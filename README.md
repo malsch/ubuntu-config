@@ -1,15 +1,43 @@
 # ubuntu-config
 
-Ansible playbooks that set up a fresh Ubuntu 26.04 LTS server on Hetzner or
+Agentic AI makes it much, much easier to run any type of software. If an agent
+runs amok, or just installs malware and poisoned packages, this is a huge
+security risk. This repository sets up a linux server configuration that guards against such
+risks, meant for personal (private) use. This implies, of course, some
+[security trade-offs](security-architecture.md#known-trade-offs) any admin who uses this should be aware of.
+
+The Ansible playbooks in this repo set up a fresh Ubuntu 26.04 LTS server on Hetzner or
 Oracle Cloud ([Always Free Resources](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm)),
 64-bit x86 (`x86_64`/`amd64`) or ARM (`aarch64`/`arm64`). They run on the server
 itself, or [from your computer over SSH](#running-from-your-computer), and can
 safely be run more than once.
 
+The result is a ready-to-use linux server configuration (not only) for AI agents. You get:
+
+- a configuration that is highly secure on multiple layers (networking via
+  NetBird, isolated environments, trusted programs), see
+  [security-architecture.md](security-architecture.md)
+- a personal admin account (bash or zsh), and further users can be added with a single
+  playbook
+- a shared folder, `/srv/shared`, for files several users work on
+- a very opinionated (and certainly incomplete) set of tools: Docker and
+  everyday [command-line tools](roles/install_essential_packages/tasks/main.yml)
+  with the server setup, plus mise,
+  Syncthing, ffmpeg and more installed with an
+  [optional playbook](MAINTENANCE.md#install-apps-playbookyml-apps)
+- settings for a swap file, the timezone and limits on log sizes
+
+Unrelated material, also in this repository (keep it or delete it?):
+
+- [`cheatsheets/`](cheatsheets): CLI references for Docker Compose and Hermes.
+
 ## Requirements
 
 - Server: Ubuntu 26.04 cloud image, root login via SSH key
-  - maybe [`cloud-init`](cloud-init) comes in handy here: Example cloud config to paste when creating a server (hostname, timezone, default user). Contains placeholders. It is basically used to set the default admin user name and the host name (console: `<admin-user-name>@<hostname>`) before starting the server.
+  - Optional: [`cloud-init`](cloud-init) is an example cloud config to paste
+    when creating the server. It sets the admin user name and the host name
+    (console: `<admin-user-name>@<hostname>`) before the server starts, and
+    the timezone. Replace its placeholders first.
 - Cloud firewall (Hetzner Cloud Firewall, or Oracle's Security List / Network
   Security Group): inbound 22/tcp, plus 80/443/tcp and 51820/udp as needed.
   Later, you can login via NetBird and close 22/tcp via the provider's cloud firewall (or just keep your home IP open) to turn off SSH connection attempts.
@@ -175,8 +203,8 @@ chgrp -R shared ~/shared/<name>
 ### `vps-init-ssh-setup-playbook.yml`: SSH hardening with role `linux_ssh_setup`
 
 What it changes, in `/etc/ssh/sshd_config.d/99-hardening.conf`: SSH accepts
-only keys, no passwords; root cannot log in; at most 3 attempts per connection;
-no X11 forwarding. This stops password guessing completely.
+only keys, no passwords; root cannot log in; at most 3 attempts per connection.
+This stops password guessing completely.
 
 It must be the admin who runs it: it refuses to run as root, or if the admin
 has no SSH keys. So a working admin login is proven before it switches to
@@ -201,26 +229,9 @@ console; Oracle: serial console) is the only way back in, and it needs the admin
 Git identity, mise activation and shell settings are not part of this setup:
 each user installs them from the [dotfiles repository](https://github.com/malsch/dotfiles).
 
-## Further inspiration
+## Inspired by
+
+This setup was inspired by:
 
 - [Introduction to Ansible](https://phelipetls.github.io/posts/introduction-to-ansible/) is a short, practical introduction to Ansible.
-- [basic-server-configuration](https://github.com/mist941/basic-server-configuration/tree/main/roles/automatic_updates/tasks) is the Ansible repository this setup is modelled on; the link goes to its automatic-updates role.
-
-## Further notes to increase security
-
-- [An essay on paying for open source](https://seldo.com/posts/nobody-pays-for-open-source-we-can-force-them-to/) describes the big business around open-source supply chain security, where JFrog and Snyk seem to be the largest providers.
-- [Ubuntu Pro (ESM)](https://ubuntu.com/security/esm) extends security updates beyond the five years of standard support of an LTS release.
-- [GitHub's supply chain security](https://github.com/security/advanced-security/software-supply-chain) (dependency graph, Dependabot) warns about vulnerable open-source dependencies in your repositories; most of it is free.
-- [Snyk](https://snyk.io/de/plans/) is another provider of such scans, priced for software companies.
-- The BSI's [IT-Grundschutz-Kompendium](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/IT-Grundschutz-Kompendium/it-grundschutz-kompendium_node.html) (German) describes in detail how to set up and run a secure server.
-- [Grundschutz++](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/Grundschutz-in-der-Informationssicherheit/Grundschutz-Plus-Plus/grundschutz-plus-plus_node.html) is the BSI's successor to IT-Grundschutz, currently being updated.
-- [InSpec](https://github.com/inspec/inspec) runs automated compliance checks, e.g. to verify that a server's settings match a security baseline.
-
-## Checking code for security issues
-
-- [pip-audit](https://github.com/pypa/pip-audit) lists known vulnerabilities (CVEs) in a Python project's dependencies: `uvx pip-audit`.
-- [Bandit](https://github.com/PyCQA/bandit) finds risky patterns in Python code, such as injection, weak crypto, hardcoded secrets or unsafe subprocess calls: `uvx bandit -r src/`.
-
-## Also in this repository
-
-- [`cheatsheets/`](cheatsheets): CLI references for Docker Compose and Hermes.
+- [basic-server-configuration](https://github.com/mist941/basic-server-configuration/tree/main) is an Ansible repository describing security features we include as well.

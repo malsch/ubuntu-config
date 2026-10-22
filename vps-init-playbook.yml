@@ -49,7 +49,7 @@
       private: false
 
     - name: admin_shell
-      prompt: "Login shell? (bash or zsh)"
+      prompt: "Login shell? Bash (Linux default) is recommended for writing !#/bin/bash scripts that run everywhere; zsh (macOS default) appears to be the superior shell for interactive use. (bash or zsh)"
       default: "bash"
       private: false
 
