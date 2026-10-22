@@ -133,4 +133,4 @@
           - "Once that works, from that session:"
           - "  cd {{ playbook_dir }} && sudo ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml"
           - "(or from your computer: ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml -i <server-ip>, -u {{ admin_username }} -K)"
-          - "It disables root and password logins via SSH."
+          - "It disables root and password logins via SSH. Alternatively, you may want to put port 22 behind a firewall, while still being able to use SSH via NetBird's private tunnel."

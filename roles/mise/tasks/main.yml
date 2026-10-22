@@ -62,5 +62,5 @@
       Note: ppa:jdxcode/mise has no mise package for
       {{ ansible_facts.distribution_release }} on this architecture, so
       'add-apt-repository ppa:jdxcode/mise' would not work here. mise's own
-      repository (used above) is not affected.
+      repository (used above) is not affected. Warning raised, because it somehow questions mise's trustworthiness.
   when: mise_ppa_check.rc != 0
