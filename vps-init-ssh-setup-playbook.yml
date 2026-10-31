@@ -12,7 +12,7 @@
   vars:
     ansible_python_interpreter: /usr/bin/python3
     # Read on the server: the admin who ran sudo, or logged in with -u over SSH.
-    ssh_setup_user: "{{ ansible_env.SUDO_USER | default('') }}"
+    ssh_setup_user: "{{ ansible_facts.env.SUDO_USER | default('') }}"
 
   pre_tasks:
     - name: Check this runs via sudo from a normal account, not as root

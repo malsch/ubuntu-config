@@ -4,7 +4,7 @@
 - name: Resolve SSH key source
   ansible.builtin.set_fact:
     user_account_keys_from: >-
-      {{ (ansible_env.SUDO_USER | default('root', true))
+      {{ (ansible_facts.env.SUDO_USER | default('root', true))
          if user_account_ssh_keys_from == 'me' else user_account_ssh_keys_from }}
 
 # Does the user already have a password? ('!' or '*' = none / locked)
