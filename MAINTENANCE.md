@@ -15,11 +15,9 @@ Software for your work on the server.
 
 - Syncthing to sync files between different computers. 
 - mise provides dev tools, env vars, and tasks in one CLI.
+- Quarto, for documents and reports from Markdown, Python or R. PDF output needs TinyTeX, installed per user: `quarto install tinytex`; `quarto check` shows what else is missing.
 - Chromium's system libraries, for Playwright (web automation, AI agents). Playwright and the browser itself are installed per user: `npx playwright install chromium`.
 - and other stuff, more to come ...
-
-Not added yet: Optional, Quarto (then R, Python, TeX, …): download the `.deb` from
-   <https://quarto.org/docs/get-started/>, `sudo apt install ./quarto-*.deb`, `quarto check`.
 
 The general idea here is to install widely used and stable tools from apt, which require sudo.
 
@@ -29,6 +27,7 @@ It asks no questions and runs these roles:
 |---|---|---|
 | `install_app_packages` | `packages` | ripgrep, Python build tools, ffmpeg, syncthing |
 | `mise` | `packages`, `mise` | mise from mise's own apt repository |
+| `quarto` | `packages`, `quarto` | Quarto's `.deb` from GitHub, with a fixed checksum |
 | `install_chromium_dependencies` | `packages`, `chromium` | Libraries, fonts and xvfb that Chromium (Playwright) needs |
 
 ## `create-user-playbook.yml`: Add more users

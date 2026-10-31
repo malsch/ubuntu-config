@@ -22,7 +22,7 @@ The result is a ready-to-use linux server configuration (not only) for AI agents
 - a shared folder, `/srv/shared`, for files several users work on
 - a very opinionated (and certainly incomplete) set of tools: Docker and
   everyday [command-line tools](roles/install_essential_packages/tasks/main.yml)
-  with the server setup, plus mise,
+  with the server setup, plus mise, Quarto,
   Syncthing, ffmpeg and more installed with an
   [optional playbook](MAINTENANCE.md#install-apps-playbookyml-apps)
 - settings for a swap file, the timezone and limits on log sizes

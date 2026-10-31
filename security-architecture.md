@@ -30,17 +30,24 @@ left on purpose. Setup steps are in the [README](README.md).
 
 ### Firewalls: two layers
 
+- The firewall settings we implement can certainly be improved. We just provide some intitial configuration. Dependening on what the server is used for, you may need to 
+  revisit the firewall settings.
 - **Cloud firewall** (Hetzner Cloud Firewall, Oracle Security List or Network
-  Security Group). It filters traffic before it reaches the server, and you
-  set it up in the provider's console.
+  Security Group), set it up in the provider's console. It filters traffic before it reaches the server.
+  Once NetBird works, ports 22, 80 and 443
+  should probably be closed there, unless you need them public. They stay
+  reachable through the tunnel.
 - **Host firewall** on the server, set up by the playbook:
   - UFW blocks every incoming connection by default and allows outgoing ones.
   - It opens only 22/tcp (SSH), 80/443/tcp (web) and NetBird's WireGuard
     port (UDP, for direct connections between peers).
   - On Oracle this is implemented using Oracle's own iptables rules instead
     of UFW.
-  - Traffic through the NetBird tunnel is allowed, including web traffic
-    (80/443) forwarded from the tunnel to Docker containers.
+  - The NetBird network is fully trusted: everything arriving through the
+    tunnel is allowed, on every port, including web traffic (80/443)
+    forwarded to Docker containers. Which peers may reach the server is
+    decided only by NetBird's access policies (see
+    [Known trade-offs](#known-trade-offs)).
 - **If one layer is misconfigured, the other still protects.** A port must
   be open in both firewalls to be reachable from the internet. One exception
   is in [Known trade-offs](#known-trade-offs): Docker bypasses UFW.
@@ -128,6 +135,11 @@ claim to be:
 - **Ansible itself** and its modules come from Ubuntu's ansible package,
   not from Ansible Galaxy. The playbooks provided here should come from a trusted source, run as root, and live in `/opt/ubuntu-config`, which only root can change.
 
+Quarto (if installed) is the one exception: it has no apt repository, so it
+comes from Quarto's GitHub releases. The playbook installs only the exact
+version it was written for. A changed file on GitHub is refused, not
+installed. It gets no automatic updates.
+
 ### Automatic updates
 
 `unattended-upgrades` installs security updates every day, for Ubuntu and for
@@ -158,6 +170,9 @@ These are deliberate; know them before relying on the setup.
   access policies.
 - **Port 22 is open to the internet** until you close it in the cloud
   firewall.
+- **Ports 80 and 443 are open** in the host firewall, so a web server can be
+  reached from the internet. Nothing answers until one runs there. If the
+  server hosts no public websites, keep them closed in the cloud firewall.
 - **Copied SSH keys.** With the answer `me`, the admin gets the same keys as
   the account that ran the setup (often root). Remove keys you don't need
   from `~/.ssh/authorized_keys`.

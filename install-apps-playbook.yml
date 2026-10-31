@@ -11,4 +11,5 @@
   roles:
     - { role: install_app_packages, tags: ['packages'] }
     - { role: mise, tags: ['packages', 'mise'] }
+    - { role: quarto, tags: ['packages', 'quarto'] }
     - { role: install_chromium_dependencies, tags: ['packages', 'chromium'] }
