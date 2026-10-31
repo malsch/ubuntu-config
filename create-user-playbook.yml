@@ -1,0 +1,81 @@
+# Create (or update) one login account, asking for the important decisions.
+# Run on the server, from this directory:
+#     sudo ./run-ansible-logged.sh create-user-playbook.yml
+# Skip questions by answering on the command line:
+#     sudo ./run-ansible-logged.sh create-user-playbook.yml -e username=alice -e sudo=no
+# (A pasted public key contains spaces; on the command line pass it as JSON:
+#  -e '{"ssh_keys_from": "ssh-ed25519 AAAA... me@laptop"}')
+- name: Create a user
+  hosts: all              # localhost.ini: this server; or -i servers.ini for SSH
+  become: true
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3   # system python has python3-apt
+
+  vars_prompt:
+    - name: username
+      prompt: "Username"
+      private: false
+
+    - name: sudo
+      prompt: "Give sudo rights? (yes/no)"
+      default: "no"
+      private: false
+
+    - name: password
+      prompt: "Password for su, sudo and the console; never SSH (required; empty only keeps an existing one)"
+      default: ""
+      private: true
+      confirm: true
+
+    - name: passwordless_sudo
+      prompt: "With sudo: turn off the sudo password completely? Then the SSH key alone = root. (yes/no)"
+      default: "no"
+      private: false
+
+    - name: sudo_timeout_hours
+      prompt: "Only used with sudo and a sudo password: ask for the password, then not again for how many hours (per login session)?"
+      default: "24"
+      private: false
+
+    - name: shell
+      prompt: "Login shell? Bash (Linux default) is recommended for writing !#/bin/bash scripts that run everywhere; zsh (macOS default) appears to be the superior shell for interactive use. (bash or zsh)"
+      default: "bash"
+      private: false
+
+    - name: ssh_keys_from
+      prompt: "SSH keys: copy from which user? ('me' = the account running this; or a username, a public key, or 'none')"
+      default: "me"
+      private: false
+
+    - name: docker
+      prompt: "Add to docker group? Gives root access without a password; sudo with a password is safer. (yes/no)"
+      default: "no"
+      private: false
+
+    - name: adm
+      prompt: "Add to adm group, to read system logs? (yes/no)"
+      default: "no"
+      private: false
+
+    - name: shared
+      prompt: "Add to shared group, for /srv/shared (linked as ~/shared)? (yes/no)"
+      default: "no"
+      private: false
+
+    - name: linger
+      prompt: "Lingering: systemd user services start at boot and survive logout? (yes/no)"
+      default: "yes"
+      private: false
+
+  roles:
+    - role: user_account
+      vars:
+        user_account_name: "{{ username }}"
+        user_account_sudo: "{{ 'none' if not sudo | bool else 'nopassword' if passwordless_sudo | bool else 'password' }}"
+        user_account_sudo_timeout_hours: "{{ sudo_timeout_hours }}"
+        user_account_password: "{{ password }}"
+        user_account_shell: "{{ shell }}"
+        user_account_ssh_keys_from: "{{ ssh_keys_from }}"
+        user_account_groups: "{{ (['docker'] if docker | bool else []) + (['adm'] if adm | bool else []) + (['shared'] if shared | bool else []) }}"
+        user_account_linger: "{{ linger | bool }}"

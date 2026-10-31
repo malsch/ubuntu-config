@@ -1,0 +1,16 @@
+---
+# Quarto has no apt repository, so the .deb comes from Quarto's GitHub
+# releases. The checksums are fixed in defaults/main.yml: a changed file on
+# GitHub fails the download instead of being installed.
+# Not updated automatically: change the version in defaults/main.yml and run
+# again. PDF output needs TinyTeX, installed per user: quarto install tinytex
+- name: Download Quarto
+  ansible.builtin.get_url:
+    url: "https://github.com/quarto-dev/quarto-cli/releases/download/v{{ quarto_version }}/{{ quarto_deb }}"
+    dest: "/tmp/{{ quarto_deb }}"
+    checksum: "sha256:{{ quarto_checksums[quarto_arch] }}"
+    mode: "0644"
+
+- name: Install Quarto
+  ansible.builtin.apt:
+    deb: "/tmp/{{ quarto_deb }}"

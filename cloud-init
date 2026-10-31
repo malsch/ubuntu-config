@@ -1,0 +1,12 @@
+#cloud-config
+hostname: ubuntu-arm-12gb
+timezone: Europe/Berlin
+
+system_info:
+  default_user:
+    name: <user_account_name>
+    lock_passwd: True
+    gecos: <user_account_name>
+    groups: [adm, cdrom, dip, lxd, sudo]
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash

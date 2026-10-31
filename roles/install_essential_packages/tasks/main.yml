@@ -1,0 +1,28 @@
+---
+- name: Update apt cache and upgrade all packages
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: "yes"
+
+# Tools to run and maintain the server. Apps for your work: install-apps-playbook.yml.
+# Packages used by exactly one role are installed by that role instead.
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      # Downloads and third-party repos (Docker, NetBird)
+      - ca-certificates # TLS certificates
+      - curl            # HTTP client
+      - gnupg           # key verification
+
+      # Shell and tools
+      - zsh             # Z shell (macOS default)
+      - git             # version control
+      - jq              # JSON processor
+
+      # Monitoring
+      - htop            # process viewer
+      - mtr             # network diagnostics
+
+      # File transfer
+      - rsync           # file sync
+    state: present

@@ -1,0 +1,15 @@
+# Apps for the work done on the server. Run after vps-init-playbook.yml, and
+# again whenever this list changes; it asks no questions. See README.md.
+#     sudo ./run-ansible-logged.sh install-apps-playbook.yml
+- name: Apps
+  hosts: all              # localhost.ini: this server; or -i servers.ini for SSH
+  become: true
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  roles:
+    - { role: install_app_packages, tags: ['packages'] }
+    - { role: mise, tags: ['packages', 'mise'] }
+    - { role: quarto, tags: ['packages', 'quarto'] }
+    - { role: install_chromium_dependencies, tags: ['packages', 'chromium'] }

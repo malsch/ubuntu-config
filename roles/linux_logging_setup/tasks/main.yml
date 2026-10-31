@@ -1,0 +1,15 @@
+---
+# Cap journal disk usage so a runaway log (e.g. a crash loop) cannot fill the disk.
+# Docker creates separate logs (not handled here)
+- name: Create journald drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Cap journald size
+  ansible.builtin.copy:
+    src: 00-size-cap.conf
+    dest: /etc/systemd/journald.conf.d/00-size-cap.conf
+    mode: "0644"
+  notify: Restart journald

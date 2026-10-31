@@ -1,0 +1,7 @@
+---
+# To update: change the version and both checksums, from
+# https://github.com/quarto-dev/quarto-cli/releases/download/v<version>/quarto-<version>-checksums.txt
+quarto_version: "1.10.20"
+quarto_checksums:
+  amd64: 39e4bc16f807ad7154fd5cc1238a077ff6be3f4015bc493693b598314f247adc
+  arm64: f501fe3c27d89f7651389f695d3326eabd4074e5faea6050176b62a07c16ce91

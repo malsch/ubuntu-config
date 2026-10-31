@@ -1,0 +1,29 @@
+---
+- name: Create swap file
+  when: linux_swap_size | length > 0
+  block:
+    # Stops at the first failing command and removes the half-made file, so
+    # the next run tries again instead of skipping a broken /swapfile.
+    # umask 077: the file is root-only from the moment it exists.
+    - name: Allocate and enable /swapfile
+      ansible.builtin.shell: |
+        set -eu
+        trap 'swapoff /swapfile 2>/dev/null || true; rm -f /swapfile' ERR
+        umask 077
+        fallocate -l {{ linux_swap_size }} /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+      args:
+        executable: /bin/bash
+        creates: /swapfile
+
+    - name: Mount swap at boot
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        line: /swapfile none swap sw 0 0
+
+    - name: Prefer RAM over swap
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: "10"
+        sysctl_file: /etc/sysctl.d/99-swappiness.conf

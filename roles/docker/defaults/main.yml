@@ -1,0 +1,4 @@
+---
+# Ubuntu release name used for Docker's apt repository. Set to "noble" if
+# Docker has no packages for this release yet: -e docker_codename=noble
+docker_codename: "{{ ansible_facts.distribution_release }}"

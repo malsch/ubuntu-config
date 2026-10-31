@@ -1,0 +1,8 @@
+---
+# Almost the same inbound openings as the firewall_ufw role. No FORWARD rules: Docker handles
+# forwarding to containers itself, ahead of anything in rules.v4.
+firewall_oracle_iptables_rules:
+  - { chain: INPUT, rule: "-p udp -m udp --dport {{ netbird_port }} -j ACCEPT" }   # NetBird WireGuard
+  - { chain: INPUT, rule: "-i {{ netbird_iface }} -j ACCEPT" }                     # NetBird tunnel
+  - { chain: INPUT, rule: "-p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT" }
+  - { chain: INPUT, rule: "-p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT" }

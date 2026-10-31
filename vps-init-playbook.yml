@@ -1,0 +1,136 @@
+# Server setup for a fresh Ubuntu server (Hetzner or Oracle Cloud, x86 or ARM).
+#     sudo ./run-ansible-logged.sh vps-init-playbook.yml
+# See README.md.
+- name: Basic server setup
+  hosts: all              # localhost.ini: this server; or -i servers.ini for SSH
+  become: true
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3   # system python has python3-apt
+
+    # Oracle Cloud's Ubuntu images ship their own iptables rules and Oracle
+    # advises against UFW there. Detected by that rules file; force with
+    # -e oracle_cloud=true or false.
+    # https://docs.oracle.com/en-us/iaas/Content/Compute/known-issues.htm#ufw
+    oracle_cloud: "{{ oracle_rules_file.stat.exists }}"
+
+  # Asked on every run, never stored. Skip a question with -e name=value,
+  # e.g. -e timezone=Europe/Berlin, for unattended runs.
+  vars_prompt:
+    - name: admin_username
+      prompt: "Admin username (you; sudo rights)"
+      private: false
+
+    # 'me' = the account running this: whoever ran sudo on the server (or logged in
+    # with -u over SSH), else root. Read on the server, so it also works remotely.
+    - name: admin_ssh_keys_from
+      prompt: "Admin SSH keys: copy from which user? ('me' = the account running this; or a username, a public key, or 'none')"
+      default: "me"
+      private: false
+
+    # Needed for sudo, su, and the console (Hetzner VNC / Oracle serial), your
+    # only way back if SSH breaks. Required; empty only keeps an existing one.
+    - name: admin_password
+      prompt: "Admin password for su, sudo and the console; never SSH (required; empty only keeps an existing one)"
+      default: ""
+      private: true
+      confirm: true
+
+    - name: admin_passwordless_sudo
+      prompt: >-
+        Turn off the sudo password completely (yes/no)? Since you are automatically added
+        to the docker group, sudo password protection can be sidesteped using docker.
+      default: "yes"
+      private: false
+
+    - name: admin_sudo_timeout_hours
+      prompt: "Only used if you answered no: sudo asks for the admin password, then not again for how many hours (per login session)?"
+      default: "24"
+      private: false
+
+    - name: admin_shell
+      prompt: "Login shell? Bash (Linux default) is recommended for writing !#/bin/bash scripts that run everywhere; zsh (macOS default) appears to be the superior shell for interactive use. (bash or zsh)"
+      default: "bash"
+      private: false
+
+    - name: timezone
+      prompt: "Timezone? (e.g. Europe/Berlin, UTC, America/New_York)"
+      default: "Europe/Berlin"
+      private: false
+
+    # https://docs.netbird.io/manage/peers/register-machines-using-setup-keys
+    - name: netbird_setup_key
+      prompt: "NetBird setup key (empty = already connected, keep as is)"
+      default: ""
+      private: true
+
+  pre_tasks:
+    - name: Check required settings
+      ansible.builtin.assert:
+        that:
+          - admin_username | length > 0
+        fail_msg: "Enter an admin username"
+      tags: always
+
+    # Without a key, NetBird must already be connected.
+    # Checked up front, so a missing key stops the run before anything changes.
+    - name: Check NetBird connection (no setup key given)
+      ansible.builtin.command: netbird status --json
+      register: netbird_connection
+      changed_when: false
+      failed_when: false     # not installed / not running = not connected
+      check_mode: false
+      when: netbird_setup_key | length == 0
+      tags: always
+
+    - name: Require a NetBird setup key when not connected
+      ansible.builtin.assert:
+        that: (netbird_status_json | from_json).management.connected | default(false)
+        fail_msg: "NetBird is not connected yet: run again and enter a NetBird setup key."
+      vars:
+        # Not JSON when NetBird is missing or not set up; treat as not connected.
+        netbird_status_json: "{{ netbird_connection.stdout if netbird_connection.stdout | default('') is match('\\s*\\{') else '{}' }}"
+      when: netbird_setup_key | length == 0
+      tags: always
+
+    - name: Detect Oracle Cloud firewall rules
+      ansible.builtin.stat:
+        path: /etc/iptables/rules.v4
+      register: oracle_rules_file
+      tags: always
+
+  roles:
+    - { role: linux_time_configuration, tags: ['time'] }
+    - { role: netbird, tags: ['netbird'] }   # before the firewall roles: they use its port/interface
+    - { role: firewall_ufw, tags: ['security', 'firewall', 'ufw'], when: not oracle_cloud | bool }
+    - { role: firewall_oracle_iptables, tags: ['security', 'firewall', 'oracle'], when: oracle_cloud | bool }
+    - { role: linux_fail2ban, tags: ['security', 'fail2ban'] }
+    - { role: install_essential_packages, tags: ['packages', 'updates', 'system'] }
+    - { role: install_unattended_upgrades, tags: ['updates', 'automatic'] }
+    - { role: linux_swap, tags: ['system', 'swap'] }
+    - { role: linux_shared_directory, tags: ['system', 'shared'] }   # before user_account: it adds the group
+    # The admin account: you. Other users: create-user-playbook.yml.
+    - role: user_account
+      tags: ['users']
+      vars:
+        user_account_name: "{{ admin_username }}"
+        user_account_sudo: "{{ 'nopassword' if admin_passwordless_sudo | bool else 'password' }}"
+        user_account_sudo_timeout_hours: "{{ admin_sudo_timeout_hours }}"
+        user_account_password: "{{ admin_password }}"
+        user_account_shell: "{{ admin_shell }}"
+        user_account_ssh_keys_from: "{{ admin_ssh_keys_from }}"
+        user_account_groups: [adm, shared]   # docker is added by the docker role
+        user_account_linger: false
+    - { role: docker, tags: ['docker'] }
+    - { role: linux_logging_setup, tags: ['logging'] }
+
+  post_tasks:
+    - name: Next step - SSH hardening
+      ansible.builtin.debug:
+        msg:
+          - "Root SSH login is still allowed. Next, in a NEW terminal:"
+          - "  ssh {{ admin_username }}@<server-ip>"
+          - "Once that works, from that session:"
+          - "  cd {{ playbook_dir }} && sudo ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml"
+          - "(or from your computer: ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml -i <server-ip>, -u {{ admin_username }} -K)"
+          - "It disables root and password logins via SSH. Alternatively, you may want to put port 22 behind a firewall, while still being able to use SSH via NetBird's private tunnel."

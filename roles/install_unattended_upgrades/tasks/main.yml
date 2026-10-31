@@ -1,0 +1,28 @@
+---
+# Automatic security updates, rebooting at 4am if an update requires it.
+#
+# check /etc/apt/apt.conf.d/50unattended-upgrades for additional default unattended-upgrades settings.
+# Refers to Ubuntu Pro for Extended Security Maintenance (ESM) updates, which are free for personal use. See https://ubuntu.com/esm.
+- name: Install unattended-upgrades
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+
+- name: Enable daily unattended upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";            // Update package lists daily
+      APT::Periodic::Download-Upgradeable-Packages "1";   // Download upgrades daily
+      APT::Periodic::Unattended-Upgrade "1";              // Run unattended upgrade daily
+      APT::Periodic::AutocleanInterval "7";               // Clean up weekly
+    mode: "0644"
+
+- name: Reboot automatically at 4am when required
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/50unattended-upgrades
+    regexp: '^\s*(//\s*)?Unattended-Upgrade::{{ item.key }} "'
+    line: 'Unattended-Upgrade::{{ item.key }} "{{ item.value }}";'
+  loop:
+    - { key: Automatic-Reboot, value: "true" }
+    - { key: Automatic-Reboot-Time, value: "04:00" }

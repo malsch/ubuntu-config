@@ -1,0 +1,82 @@
+---
+# NetBird: WireGuard-based mesh VPN. On a fresh install the
+# package itself sets up and starts the netbird service.
+
+# Installed from NetBird's apt repository, as in their docs
+# (https://docs.netbird.io/get-started/install/linux).
+- name: Add NetBird apt key
+  ansible.builtin.get_url:
+    url: https://pkgs.netbird.io/debian/public.key
+    dest: /etc/apt/keyrings/netbird.asc
+    mode: "0644"
+
+- name: Add NetBird apt repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/netbird.list
+    content: "deb [signed-by=/etc/apt/keyrings/netbird.asc] https://pkgs.netbird.io/debian stable main\n"
+    mode: "0644"
+
+# NetBird's packages only from NetBird's repository, and nothing else from it:
+# it must not replace Ubuntu packages.
+- name: Download NetBird packages only from NetBird's repository
+  ansible.builtin.copy:
+    dest: /etc/apt/preferences.d/netbird
+    content: |
+      Package: {{ netbird_packages | join(' ') }}
+      Pin: origin pkgs.netbird.io
+      Pin-Priority: 500
+
+      Package: {{ netbird_packages | join(' ') }}
+      Pin: release o=*
+      Pin-Priority: -1
+
+      Package: *
+      Pin: origin pkgs.netbird.io
+      Pin-Priority: -1
+    mode: "0644"
+  vars:
+    netbird_packages: [netbird, netbird-ui, netbird-ui-gtk3, network-manager-netbird, wiretrustee]
+
+- name: Install NetBird
+  ansible.builtin.apt:
+    name: netbird
+    update_cache: true
+
+# With a setup key: (re)connect. Without one, the playbook's pre_tasks already
+# checked that NetBird is connected ('netbird up' without a key would wait for
+# an interactive login).
+- name: Connect to NetBird
+  ansible.builtin.command:
+    argv: [netbird, up, --setup-key, "{{ netbird_setup_key }}"]
+  no_log: true
+  changed_when: false
+  when: netbird_setup_key | length > 0
+
+# Read the port and tunnel interface NetBird actually uses, for the firewall
+# roles (firewall_ufw / firewall_oracle_iptables). Tagged 'always' so they are set even when only
+# a firewall role runs (--tags firewall).
+# Retries: right after the first 'netbird up' the tunnel IP may not be assigned yet.
+- name: Read NetBird status
+  ansible.builtin.command: netbird status --json
+  register: netbird_status
+  until: (netbird_status.stdout | from_json).netbirdIp | default('') | length > 0
+  retries: 10
+  delay: 3
+  changed_when: false
+  check_mode: false
+  tags: always
+
+# The interface is not in the status, so look it up by NetBird's IP.
+- name: Find NetBird's tunnel interface
+  ansible.builtin.command:
+    argv: [ip, -o, -4, addr, show, to, "{{ (netbird_status.stdout | from_json).netbirdIp | split('/') | first }}"]
+  register: netbird_iface_lookup
+  changed_when: false
+  check_mode: false
+  tags: always
+
+- name: Remember NetBird's port and interface
+  ansible.builtin.set_fact:
+    netbird_port: "{{ (netbird_status.stdout | from_json).wireguardPort }}"
+    netbird_iface: "{{ netbird_iface_lookup.stdout.split()[1] }}"
+  tags: always

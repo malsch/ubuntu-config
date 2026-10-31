@@ -1,0 +1,6 @@
+---
+# Only sshd re-reads the auth settings; ssh.socket keeps listening meanwhile.
+- name: Restart ssh
+  ansible.builtin.service:
+    name: ssh
+    state: restarted

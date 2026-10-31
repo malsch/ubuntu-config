@@ -1,0 +1,66 @@
+---
+# From mise's own apt repository, which has x86 and ARM packages.
+# Mise's own documentation recommends the PPA for apt.
+# Though, since the PPA has no ARM build for Ubuntu 26.04.,
+# I am a bit worried about this private source repository. Therefore the warning below.
+
+- name: Add mise apt key
+  ansible.builtin.get_url:
+    url: https://mise.jdx.dev/gpg-key.pub
+    dest: /etc/apt/keyrings/mise-archive-keyring.asc
+    mode: "0644"
+
+- name: Add mise apt repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/mise.list
+    content: "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.asc] https://mise.jdx.dev/deb stable main\n"
+    mode: "0644"
+
+# mise only from mise's repository, and nothing else from it: it must not
+# replace Ubuntu packages.
+- name: Download mise only from mise's repository
+  ansible.builtin.copy:
+    dest: /etc/apt/preferences.d/mise
+    content: |
+      Package: mise
+      Pin: origin mise.jdx.dev
+      Pin-Priority: 500
+
+      Package: mise
+      Pin: release o=*
+      Pin-Priority: -1
+
+      Package: *
+      Pin: origin mise.jdx.dev
+      Pin-Priority: -1
+    mode: "0644"
+
+- name: Install mise
+  ansible.builtin.apt:
+    name: mise
+    update_cache: true
+
+# Only informs: would 'add-apt-repository ppa:jdxcode/mise' give mise on this
+# server? Reads the PPA's package list for this release and architecture.
+- name: Check whether the mise PPA has a build for this server
+  ansible.builtin.shell: >-
+    set -o pipefail &&
+    curl -fsSL "{{ mise_ppa_dists }}/main/binary-$(dpkg --print-architecture)/Packages.gz"
+    | gunzip | grep -qx 'Package: mise'
+  args:
+    executable: /bin/bash
+  vars:
+    mise_ppa_dists: "https://ppa.launchpadcontent.net/jdxcode/mise/ubuntu/dists/{{ ansible_facts.distribution_release }}"
+  register: mise_ppa_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Warn if the mise PPA would not work here
+  ansible.builtin.debug:
+    msg: >-
+      Note: ppa:jdxcode/mise has no mise package for
+      {{ ansible_facts.distribution_release }} on this architecture, so
+      'add-apt-repository ppa:jdxcode/mise' would not work here. mise's own
+      repository (used above) is not affected. Warning raised, because it somehow questions mise's trustworthiness.
+  when: mise_ppa_check.rc != 0

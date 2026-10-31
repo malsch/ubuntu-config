@@ -1,0 +1,44 @@
+# SSH hardening: key-only logins via SSH, no root login (see role linux_ssh_setup).
+# Run it only after you have logged in over SSH as your admin account,
+# so a working non-root login is proven before root login is switched off.
+# From that admin session:
+#     sudo ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml
+# Or from your computer, logging in as the admin:
+#     ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml -i <server-ip>, -u <admin> -K
+- name: SSH hardening
+  hosts: all              # localhost.ini: this server; or -i servers.ini for SSH
+  become: true
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    # Read on the server: the admin who ran sudo, or logged in with -u over SSH.
+    ssh_setup_user: "{{ ansible_env.SUDO_USER | default('') }}"
+
+  pre_tasks:
+    - name: Check this runs via sudo from a normal account, not as root
+      ansible.builtin.assert:
+        that: ssh_setup_user | length > 0 and ssh_setup_user != 'root'
+        fail_msg: >-
+          Log in over SSH as your admin account (not root) and run
+          'sudo ./run-ansible-logged.sh vps-init-ssh-setup-playbook.yml' from there,
+          or from your computer use -u <admin> -K instead of -u root.
+
+    - name: Look up the admin's home folder
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ ssh_setup_user }}"
+
+    - name: Read the admin's SSH keys
+      ansible.builtin.stat:
+        path: "{{ ansible_facts.getent_passwd[ssh_setup_user][4] }}/.ssh/authorized_keys"
+      register: ssh_setup_keys
+
+    - name: Check the admin can log in with an SSH key
+      ansible.builtin.assert:
+        that: ssh_setup_keys.stat.exists and ssh_setup_keys.stat.size > 0
+        fail_msg: >-
+          {{ ssh_setup_user }} has no SSH keys (~/.ssh/authorized_keys), so
+          disabling root and password logins could lock you out.
+
+  roles:
+    - linux_ssh_setup
