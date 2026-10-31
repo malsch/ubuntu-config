@@ -6,6 +6,7 @@
     name:
       # Development
       - ripgrep         # fast search
+      - gh              # GitHub CLI
 
       # Python build tools
       - build-essential # compilers

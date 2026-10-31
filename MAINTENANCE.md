@@ -25,7 +25,7 @@ It asks no questions and runs these roles:
 
 | Role | Tags | What it does |
 |---|---|---|
-| `install_app_packages` | `packages` | ripgrep, Python build tools, ffmpeg, syncthing |
+| `install_app_packages` | `packages` | ripgrep, gh (GitHub CLI), Python build tools, ffmpeg, syncthing |
 | `mise` | `packages`, `mise` | mise from mise's own apt repository |
 | `quarto` | `packages`, `quarto` | Quarto's `.deb` from GitHub, with a fixed checksum |
 | `install_chromium_dependencies` | `packages`, `chromium` | Libraries, fonts and xvfb that Chromium (Playwright) needs |
