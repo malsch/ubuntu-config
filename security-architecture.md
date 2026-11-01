@@ -197,3 +197,4 @@ These are deliberate; know them before relying on the setup.
 
 - [pip-audit](https://github.com/pypa/pip-audit) lists known vulnerabilities (CVEs) in a Python project's dependencies: `uvx pip-audit`.
 - [Bandit](https://github.com/PyCQA/bandit) finds risky patterns in Python code, such as injection, weak crypto, hardcoded secrets or unsafe subprocess calls: `uvx bandit -r src/`.
+- [SonarQube Cloud](https://github.com/marketplace/sonarcloud) Automated code quality and security reviews, free for OSS maintainers and small private projects.
