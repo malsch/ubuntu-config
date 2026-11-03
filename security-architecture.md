@@ -191,6 +191,7 @@ These are deliberate; know them before relying on the setup.
 - [Snyk](https://snyk.io/de/plans/) is another provider of such scans, priced for software companies.
 - The BSI's [IT-Grundschutz-Kompendium](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/IT-Grundschutz/IT-Grundschutz-Kompendium/it-grundschutz-kompendium_node.html) (German) describes in detail how to set up and run a secure server.
 - [Grundschutz++](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/Grundschutz-in-der-Informationssicherheit/Grundschutz-Plus-Plus/grundschutz-plus-plus_node.html) is the BSI's successor to IT-Grundschutz, currently being updated.
+- [Ubuntu Server's security documentation](https://ubuntu.com/server/docs/how-to/security/) explains how to set up Ubuntu's own security features: users, firewall, AppArmor, SSH, certificates and more.
 - [InSpec](https://github.com/inspec/inspec) runs automated compliance checks, e.g. to verify that a server's settings match a security baseline.
 
 ## Checking code for security issues
@@ -199,3 +200,10 @@ These are deliberate; know them before relying on the setup.
 - [Bandit](https://github.com/PyCQA/bandit) finds risky patterns in Python code, such as injection, weak crypto, hardcoded secrets or unsafe subprocess calls: `uvx bandit -r src/`.
 - [SonarQube Cloud](https://github.com/marketplace/sonarcloud) Automated code quality and security reviews, free for OSS maintainers and small private projects.
 - Track [software vulnerabilities](https://www.vulnerability-lookup.org/) (based on the US [CVE program](https://www.cve.org/), the [European Vulnerability Database](https://www.enisa.europa.eu/topics/vulnerability-services), etc.)
+
+## Other tools for securing the server
+
+- [AppArmor](https://apparmor.net/about/lsm_introduction/), a Linux Security Module that is on by default in Ubuntu, limits what a program may access (files, network, capabilities) through profiles. Only programs with a profile are restricted, and few profiles are active by default: on a server set up with these playbooks, chronyd, rsyslogd and every Docker container.
+- [Firejail](https://github.com/netblue30/firejail) runs a single program in a sandbox (namespaces, seccomp). It is in apt (`universe`), but it is setuid root, which has led to privilege-escalation holes in the past.
+- [ClamAV](https://www.clamav.net/) is an open-source virus scanner, mainly for files from outside such as mail attachments and uploads (in apt).
+- [Falco](https://falco.org/) and [Tracee](https://aquasecurity.github.io/tracee/latest/) are open-source runtime security tools, a kind of intrusion detection for a running server. They watch, inside the kernel (with eBPF), what every process and container does, and compare it with rules for typical attacks: a shell opened in a container, a program reading `/etc/shadow`, a new file in `/etc/cron.d`, an unexpected outgoing connection. A match becomes an alert. Unlike auditd, they judge behaviour instead of only recording it. Falco is a CNCF project, Tracee comes from Aqua Security.
