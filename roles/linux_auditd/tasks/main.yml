@@ -1,0 +1,33 @@
+---
+# auditd: the kernel records changes to accounts, sudo rights, SSH keys and
+# settings, and every use of the Docker socket. Rules: templates/50-server.rules.j2.
+# Read with: sudo ausearch -k <key> -i   (or aureport -k)
+- name: Install auditd
+  ansible.builtin.apt:
+    name: auditd
+    state: present
+
+# Watches need a fixed path, so each existing ~/.ssh gets its own. Users
+# created later are covered on the next run of this playbook.
+- name: Find SSH key folders
+  ansible.builtin.find:
+    paths: [/root, /home]
+    patterns: .ssh
+    recurse: true
+    file_type: directory
+    hidden: true
+    depth: 2
+  register: linux_auditd_ssh_dirs
+
+- name: Configure audit rules
+  ansible.builtin.template:
+    src: 50-server.rules.j2
+    dest: /etc/audit/rules.d/50-server.rules
+    mode: "0640"
+  notify: Load audit rules
+
+- name: Enable auditd
+  ansible.builtin.service:
+    name: auditd
+    state: started
+    enabled: true

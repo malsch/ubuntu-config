@@ -1,0 +1,5 @@
+---
+# Combines /etc/audit/rules.d/*.rules and loads them into the kernel.
+- name: Load audit rules
+  ansible.builtin.command: augenrules --load
+  changed_when: true

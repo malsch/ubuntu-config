@@ -1,0 +1,36 @@
+# {{ ansible_managed }}
+# A small set: only events that rarely happen, so every hit is worth a look.
+# -w path -p wa: written or attributes changed; -k: the key to search by.
+
+# Accounts and passwords
+-w /etc/passwd -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/group -p wa -k identity
+-w /etc/gshadow -p wa -k identity
+
+# Sudo rights
+-w /etc/sudoers -p wa -k sudoers
+-w /etc/sudoers.d/ -p wa -k sudoers
+
+# SSH server settings and SSH keys
+-w /etc/ssh/sshd_config -p wa -k sshd
+-w /etc/ssh/sshd_config.d/ -p wa -k sshd
+{% for dir in linux_auditd_ssh_dirs.files | map(attribute='path') | sort %}
+-w {{ dir }}/ -p wa -k ssh_keys
+{% endfor %}
+
+# Programs started automatically (a common way to stay on a server)
+-w /etc/cron.d/ -p wa -k persistence
+-w /etc/crontab -p wa -k persistence
+-w /var/spool/cron/ -p wa -k persistence
+-w /etc/systemd/system/ -p wa -k persistence
+
+# Docker: whoever uses it is root. The CLI, and the socket it talks to.
+-w /usr/bin/docker -p x -k docker
+-w /run/docker.sock -k docker
+
+# Kernel modules loaded or removed (rootkits)
+-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -k modules
+
+# The audit settings themselves
+-w /etc/audit/ -p wa -k audit_config

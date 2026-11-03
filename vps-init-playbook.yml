@@ -122,6 +122,7 @@
         user_account_groups: [adm, shared]   # docker is added by the docker role
         user_account_linger: false
     - { role: docker, tags: ['docker'] }
+    - { role: linux_auditd, tags: ['security', 'auditd'] }   # last: watches files set up above
     - { role: linux_logging_setup, tags: ['logging'] }
 
   post_tasks:

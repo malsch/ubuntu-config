@@ -182,6 +182,7 @@ Then it runs these roles, in this order (tags in the second column):
 | `linux_shared_directory` | `system`, `shared` | Create new group `shared` and [`/srv/shared`](#shared-folder-srvshared): mode 2770 (group-owned, no access for others) plus a default ACL so new files stay group-writable |
 | `user_account` | `users` | New admin account, based on user input. With sudo, `adm` and `shared` group membership |
 | `docker` | `docker` | Docker Engine + Compose from Docker's repository (apt-pinned to it, updated automatically), log rotation, `live-restore`; admin in `docker` group |
+| `linux_auditd` | `security`, `auditd` | Records changes to accounts, sudo rights, SSH keys and settings, cron and systemd units, plus Docker use and kernel modules (`sudo ausearch -k <key> -i`) |
 | `linux_logging_setup` | `logging` | System logs (journald, read with `journalctl`) capped at 1 GB, in files of at most 100 MB; Docker's container logs are capped separately by the `docker` role |
 
 Oracle Cloud is detected by the file `/etc/iptables/rules.v4` (override with

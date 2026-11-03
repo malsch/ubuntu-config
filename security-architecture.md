@@ -111,6 +111,24 @@ anyone logged in.
   `--privileged`, or for a mounted Docker socket (`/var/run/docker.sock`), which
   gives root on the server.
 
+## Detecting attacks
+
+auditd keeps a record of the changes an attacker typically makes after
+getting in. The kernel logs them, with who did it, even when done as root:
+
+- accounts, passwords and sudo rights changed;
+- SSH keys or SSH settings changed;
+- programs set to start automatically (cron, systemd units);
+- Docker used (which gives root);
+- kernel modules loaded (rootkits).
+
+The rule set is small on purpose: these events are rare, so each one is worth
+a look. They are kept in `/var/log/audit/audit.log` (readable by `adm`, so
+also by the monitoring agent) and searched with `sudo ausearch -k <key> -i`,
+for example `-k ssh_keys`. Nobody is alerted automatically yet, and an
+attacker with root can delete the log, so it shows the first steps of an
+attack, not a careful attacker who already has root.
+
 ## Software and updates
 
 The main concern: how do we keep malicious code from entering the system?
