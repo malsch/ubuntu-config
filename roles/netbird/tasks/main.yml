@@ -42,6 +42,19 @@
     name: netbird
     update_cache: true
 
+# By default only Ubuntu's own archives are updated automatically.
+# Matched by site: the repository's origin label is a generic "Artifactory".
+# An update restarts the netbird service; if a release breaks, the server is
+# unreachable via NetBird until fixed (keep another way in, e.g. SSH).
+- name: Also update NetBird automatically
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/52unattended-upgrades-netbird
+    content: |
+      Unattended-Upgrade::Origins-Pattern {
+          "site=pkgs.netbird.io";
+      };
+    mode: "0644"
+
 # With a setup key: (re)connect. Without one, the playbook's pre_tasks already
 # checked that NetBird is connected ('netbird up' without a key would wait for
 # an interactive login).

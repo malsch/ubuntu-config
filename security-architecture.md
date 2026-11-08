@@ -142,9 +142,9 @@ installed. It gets no automatic updates.
 
 ### Automatic updates
 
-`unattended-upgrades` installs security updates every day, for Ubuntu and for
-Docker, and reboots at 4am when needed. Known holes are closed quickly.
-NetBird and mise are updated with `sudo apt upgrade`.
+`unattended-upgrades` installs security updates every day, for Ubuntu, and
+all updates for Docker and NetBird, and reboots at 4am when needed. Known
+holes are closed quickly. mise is updated with `sudo apt upgrade`.
 
 ## Known trade-offs
 

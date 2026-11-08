@@ -172,12 +172,12 @@ Then it runs these roles, in this order (tags in the second column):
 | Role | Tags | What it does |
 |---|---|---|
 | `linux_time_configuration` | `time` | Timezone |
-| `netbird` | `netbird` | Installs NetBird from its apt repository (apt-pinned to it), joins the mesh, and reads its WireGuard port and tunnel interface for the firewall roles |
+| `netbird` | `netbird` | Installs NetBird from its apt repository (apt-pinned to it, updated automatically), joins the mesh, and reads its WireGuard port and tunnel interface for the firewall roles |
 | `firewall_ufw` | `security`, `firewall`, `ufw` | Host firewall: default deny, SSH/HTTP(S)/NetBird open, NetBird tunnel trusted. Skipped on Oracle as [Oracle advises against UFW](https://docs.oracle.com/en-us/iaas/Content/Compute/References/bestpracticescompute.htm). |
 | `firewall_oracle_iptables` | `security`, `firewall`, `oracle` | Oracle only: opens the same ports (NetBird/HTTP(S)) in Oracle's own iptables rules. |
 | `linux_fail2ban` | `security`, `fail2ban` | Bans IPs after repeated failed SSH logins |
 | `install_essential_packages` | `packages`, `updates`, `system` | `apt update` + `upgrade`, then install tools to run the server: zsh, curl, git, jq, htop, mtr, rsync, … |
-| `install_unattended_upgrades` | `updates`, `automatic` | Unattended upgrades (Ubuntu security updates), **reboots at 4am when required** |
+| `install_unattended_upgrades` | `updates`, `automatic` | Unattended upgrades (Ubuntu security updates; Docker and NetBird add their own repositories), **reboots at 4am when required** |
 | `linux_swap` | `system`, `swap` | 4G `/swapfile`: disk space used as extra memory, so a memory peak slows the server down instead of crashing programs. Swappiness 10: use it only when memory is nearly full |
 | `linux_shared_directory` | `system`, `shared` | Create new group `shared` and [`/srv/shared`](#shared-folder-srvshared): mode 2770 (group-owned, no access for others) plus a default ACL so new files stay group-writable |
 | `user_account` | `users` | New admin account, based on user input. With sudo, `adm` and `shared` group membership |
