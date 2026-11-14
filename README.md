@@ -229,6 +229,8 @@ console; Oracle: serial console) is the only way back in, and it needs the admin
 Git identity, mise activation and shell settings are not part of this setup:
 each user installs them from the [dotfiles repository](https://github.com/malsch/dotfiles).
 
+How to handle secrets? We did not install the standard unix password manager, [pass](https://www.passwordstore.org/). Alternatively, one can store secrets is quantum-resistant encrypted SOPS files, as outlined in the [secrets repository](https://github.com/malsch/secrets).
+
 ## Inspired by
 
 This setup was inspired by:
