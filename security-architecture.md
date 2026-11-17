@@ -185,6 +185,7 @@ These are deliberate; know them before relying on the setup.
 
 ## Further notes to increase security
 
+- There exist [open-source (OpenVAS)](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Informationen-und-Empfehlungen/Freie-Software/Tools/OpenVAS/OpenVAS.html) and [closed-source](https://www.tenable.com/tenable-nessus-for-education) [solutions](https://www.rapid7.com/) for preventive vulnerability assessment and management.
 - [An essay on paying for open source](https://seldo.com/posts/nobody-pays-for-open-source-we-can-force-them-to/) describes the big business around open-source supply chain security, where JFrog and Snyk seem to be the largest providers.
 - [Ubuntu Pro (ESM)](https://ubuntu.com/security/esm) extends security updates beyond the five years of standard support of an LTS release.
 - [GitHub's supply chain security](https://github.com/security/advanced-security/software-supply-chain) (dependency graph, Dependabot) warns about vulnerable open-source dependencies in your repositories; most of it is free.
