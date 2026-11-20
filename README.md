@@ -25,7 +25,7 @@ The result is a ready-to-use linux server configuration (not only) for AI agents
   with the server setup, plus mise, Quarto,
   Syncthing, ffmpeg and more installed with an
   [optional playbook](MAINTENANCE.md#install-apps-playbookyml-apps)
-- settings for a swap file, the timezone and limits on log sizes
+- settings for a swap file with zswap, the timezone and limits on log sizes
 
 Unrelated material, also in this repository (keep it or delete it?):
 
@@ -178,7 +178,7 @@ Then it runs these roles, in this order (tags in the second column):
 | `linux_fail2ban` | `security`, `fail2ban` | Bans IPs after repeated failed SSH logins |
 | `install_essential_packages` | `packages`, `updates`, `system` | `apt update` + `upgrade`, then install tools to run the server: zsh, curl, git, jq, htop, mtr, rsync, … |
 | `install_unattended_upgrades` | `updates`, `automatic` | Unattended upgrades (Ubuntu security updates; Docker and NetBird add their own repositories), **reboots at 4am when required** |
-| `linux_swap` | `system`, `swap` | 4G `/swapfile`: disk space used as extra memory, so a memory peak slows the server down instead of crashing programs. Swappiness 10: use it only when memory is nearly full |
+| `linux_swap` | `system`, `swap` | 4G `/swapfile`: disk space used as extra memory, so a memory peak slows the server down instead of crashing programs. Swappiness 10: use it only when memory is nearly full. zswap: compresses swapped pages in RAM before they go to disk |
 | `linux_shared_directory` | `system`, `shared` | Create new group `shared` and [`/srv/shared`](#shared-folder-srvshared): mode 2770 (group-owned, no access for others) plus a default ACL so new files stay group-writable |
 | `user_account` | `users` | New admin account, based on user input. With sudo, `adm` and `shared` group membership |
 | `docker` | `docker` | Docker Engine + Compose from Docker's repository (apt-pinned to it, updated automatically), log rotation, `live-restore`; admin in `docker` group |

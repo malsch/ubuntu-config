@@ -27,3 +27,15 @@
         name: vm.swappiness
         value: "10"
         sysctl_file: /etc/sysctl.d/99-swappiness.conf
+
+# Applied by systemd-tmpfiles at boot (instead of GRUB).
+- name: Turn on zswap at boot
+  when: linux_zswap_enabled | bool
+  ansible.builtin.copy:
+    dest: /etc/tmpfiles.d/zswap.conf
+    content: |
+      # Managed by Ansible (role linux_swap). Check: grep -r . /sys/module/zswap/parameters/
+      w- /sys/module/zswap/parameters/compressor - - - - {{ linux_zswap_compressor }}
+      w- /sys/module/zswap/parameters/max_pool_percent - - - - {{ linux_zswap_max_pool_percent }}
+      w- /sys/module/zswap/parameters/enabled - - - - Y
+    mode: "0644"

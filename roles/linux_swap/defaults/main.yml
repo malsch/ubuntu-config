@@ -2,3 +2,8 @@
 # Size of /swapfile, created once on the first run (resizing an existing one
 # is not handled). "" = no swap file. Override with -e linux_swap_size=8G.
 linux_swap_size: "4G"
+
+# zswap: compressed RAM cache in front of the swap file (off in Ubuntu's kernel).
+linux_zswap_enabled: true
+linux_zswap_compressor: "zstd"          # or lz4: faster, less compression
+linux_zswap_max_pool_percent: 20        # % of RAM
