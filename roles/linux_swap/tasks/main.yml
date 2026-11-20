@@ -22,11 +22,11 @@
         path: /etc/fstab
         line: /swapfile none swap sw 0 0
 
-    - name: Prefer RAM over swap
-      ansible.posix.sysctl:
-        name: vm.swappiness
-        value: "10"
-        sysctl_file: /etc/sysctl.d/99-swappiness.conf
+# Earlier runs set swappiness 10; with zswap, Ubuntu's default (60) fits.
+- name: Remove old swappiness setting
+  ansible.builtin.file:
+    path: /etc/sysctl.d/99-swappiness.conf
+    state: absent
 
 # Applied by systemd-tmpfiles at boot (instead of GRUB).
 - name: Turn on zswap at boot
